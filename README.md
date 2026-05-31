@@ -134,6 +134,25 @@ Backend ichki tafsilotlari, kanallar (channels) ro'yxati va Redis sozlamalari:
 
 ---
 
+## Git tarixi (`git log --oneline`)
+
+```
+docs: project + backend READMEs, env config, assignment brief
+feat(frontend): live data hook (WS adapter + mock fallback)
+feat(frontend): panel UI components with 3D tilt room cards
+test(backend): TS-01..TS-08 scenario demo + dashboard smoke
+feat(backend): WebSocket dashboard fan-out + run_dashboard
+feat(backend): maintenance service (priority queue)
+feat(backend): room service (async order pipeline)
+feat(backend): housekeeping service (cleaning queue)
+feat(backend): reception service (check-in, check-out, billing)
+feat(backend): domain models (Hotel, Room, Guest, enums)
+feat(backend): add Redis Pub/Sub message broker
+chore: scaffold Vite + React + Tailwind project
+```
+
+---
+
 ## Loyiha tuzilmasi
 
 ```
