@@ -16,7 +16,9 @@ from models import (
 )
 
 
-def calculate_bill(guest: Guest, room: Room, check_out: datetime) -> dict:
+def calculate_bill(
+    guest: Guest, room: Room, check_out: datetime, discount_pct: float = 0
+) -> dict:
     """Procedural bill calculation."""
     if guest.check_in_date is not None:
         check_in = datetime.fromtimestamp(guest.check_in_date)
@@ -25,7 +27,9 @@ def calculate_bill(guest: Guest, room: Room, check_out: datetime) -> dict:
     nights = max(1, (check_out.date() - check_in.date()).days)
     room_total = round(nights * room.price, 2)
     room_charges = round(sum(room.charges), 2)
-    grand_total = round(room_total + room_charges, 2)
+    subtotal = round(room_total + room_charges, 2)
+    discount_amount = round(subtotal * discount_pct / 100, 2) if discount_pct else 0
+    grand_total = round(subtotal - discount_amount, 2)
     return {
         "guest_id": guest.guest_id,
         "guest_name": guest.name,
@@ -36,6 +40,8 @@ def calculate_bill(guest: Guest, room: Room, check_out: datetime) -> dict:
         "room_total": room_total,
         "room_charges": room_charges,
         "charge_items": list(room.charges),
+        "discount_pct": discount_pct,
+        "discount_amount": discount_amount,
         "grand_total": grand_total,
         "check_in": check_in.isoformat(),
         "check_out": check_out.isoformat(),
@@ -67,7 +73,10 @@ class ReceptionService:
 
     # ---- Room selection ---------------------------------------------------
     def _find_room(
-        self, room_type: RoomType, floor_preference: Optional[int]
+        self,
+        room_type: RoomType,
+        floor_preference: Optional[int],
+        proximity_preference: Optional[str] = None,
     ) -> Optional[Room]:
         candidates = [
             r
@@ -80,8 +89,20 @@ class ReceptionService:
             preferred = [r for r in candidates if r.floor == floor_preference]
             if preferred:
                 candidates = preferred
-        candidates.sort(key=lambda r: r.cleaned_at)
+        # Sort: proximity match first, then longest-clean (oldest cleaned_at).
+        candidates.sort(key=lambda r: (
+            r.proximity != proximity_preference if proximity_preference else False,
+            r.cleaned_at,
+        ))
         return candidates[0]
+
+    def _available_alternatives(self, exclude: RoomType) -> list:
+        return [
+            rt.value
+            for rt in RoomType
+            if rt != exclude
+            and any(r.type == rt and r.is_available() for r in self._hotel.rooms.values())
+        ]
 
     @staticmethod
     def _coerce_room_type(value: Union[str, RoomType, None]) -> Optional[RoomType]:
@@ -100,15 +121,20 @@ class ReceptionService:
         guest_name: str,
         room_type: Union[str, RoomType],
         floor_preference: Optional[int] = None,
+        proximity_preference: Optional[str] = None,
     ) -> dict:
         coerced = self._coerce_room_type(room_type)
         if coerced is None:
             return {"ok": False, "error": f"Invalid room type: {room_type!r}"}
 
         with self._hotel.allocation_lock:
-            room = self._find_room(coerced, floor_preference)
+            room = self._find_room(coerced, floor_preference, proximity_preference)
             if room is None:
-                return {"ok": False, "error": "No rooms available for requested type"}
+                alternatives = self._available_alternatives(coerced)
+                result = {"ok": False, "error": "No rooms available for requested type"}
+                if alternatives:
+                    result["alternatives"] = alternatives
+                return result
             guest = Guest(
                 guest_id=str(uuid.uuid4())[:8],
                 name=guest_name,
@@ -134,7 +160,7 @@ class ReceptionService:
             "guest": guest,
         }
 
-    def check_out(self, room_number: str) -> dict:
+    def check_out(self, room_number: str, discount_pct: float = 0) -> dict:
         room = self._hotel.rooms.get(room_number)
         if room is None:
             return {"ok": False, "error": f"Unknown room: {room_number}"}
@@ -142,7 +168,7 @@ class ReceptionService:
         if guest is None:
             return {"ok": False, "error": f"Room {room_number} is not occupied"}
 
-        bill = calculate_bill(guest, room, datetime.now())
+        bill = calculate_bill(guest, room, datetime.now(), discount_pct)
         room.mark_dirty()
         room.reset_charges()
         self._broker.publish(

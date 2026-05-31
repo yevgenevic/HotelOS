@@ -13,6 +13,8 @@ import CommandBar from './components/CommandBar'
 import ScenarioPanel from './components/ScenarioPanel'
 import RoomDetailModal from './components/RoomDetailModal'
 
+const VALID_TOKEN = import.meta.env.VITE_HOTELOS_TOKEN || 'hotel2024'
+
 const MOBILE_TABS = [
   ['rooms', 'Xonalar'],
   ['service', 'Service'],
@@ -49,7 +51,7 @@ export default function App() {
     setAuthed(false)
   }
 
-  if (!authed) return <LoginScreen onLogin={login} />
+  if (!authed) return <LoginScreen onLogin={login} validToken={VALID_TOKEN} />
 
   return (
     <div className={`min-h-dvh ${theme === 'day' ? 'theme-day' : ''}`}>

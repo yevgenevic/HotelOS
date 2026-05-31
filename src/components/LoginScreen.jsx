@@ -2,14 +2,15 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { BuildingIcon, LockIcon } from '../lib/icons'
 
-export default function LoginScreen({ onLogin }) {
+export default function LoginScreen({ onLogin, validToken = 'hotel2024' }) {
   const [token, setToken] = useState('')
   const [error, setError] = useState('')
+  const [showHint, setShowHint] = useState(false)
 
   function submit(e) {
     e.preventDefault()
-    if (token.trim().length < 4) {
-      setError('Kamida 4 ta belgi kiriting')
+    if (token.trim() !== validToken) {
+      setError('Noto\'g\'ri token. Demo uchun: hotel2024')
       return
     }
     onLogin(token.trim())
@@ -30,9 +31,27 @@ export default function LoginScreen({ onLogin }) {
             <BuildingIcon className="h-7 w-7" />
           </span>
           <h1 className="mt-5 text-3xl font-black tracking-tight text-white">HotelOS</h1>
-          <p className="mt-2 text-sm leading-6 text-slate-400">Operatsion panelga kirish</p>
+          <p className="mt-2 text-sm leading-6 text-slate-400">
+            GrandStay mehmonxonasi — operatsion boshqaruv paneli
+          </p>
 
-          <label className="mt-6 block text-xs font-semibold uppercase tracking-wide text-slate-400">
+          {/* Credential hint for demo */}
+          <div className="mt-5 flex items-start gap-2 rounded-lg border border-cyan-400/20 bg-cyan-400/8 px-3 py-2.5 text-xs text-cyan-300">
+            <span className="mt-0.5 shrink-0">ℹ</span>
+            <span>
+              Demo kirish tokeni:{' '}
+              <button
+                type="button"
+                onClick={() => { setShowHint((v) => !v); setToken(validToken) }}
+                className="font-mono font-bold underline decoration-dotted hover:text-cyan-100"
+              >
+                {showHint ? validToken : '••••••••••'}
+              </button>
+              {' '}(ko'rish / to'ldirish uchun bosing)
+            </span>
+          </div>
+
+          <label className="mt-5 block text-xs font-semibold uppercase tracking-wide text-slate-400">
             Access token
           </label>
           <div className="mt-2 flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 focus-within:ring-2 focus-within:ring-cyan-300/60">
@@ -43,10 +62,10 @@ export default function LoginScreen({ onLogin }) {
                 setToken(e.target.value)
                 setError('')
               }}
-              type="password"
+              type="text"
               autoFocus
               className="min-w-0 flex-1 bg-transparent text-sm font-medium text-white outline-none placeholder:text-slate-600"
-              placeholder="demo-token"
+              placeholder="hotel2024"
             />
           </div>
           {error && <p className="mt-2 text-sm font-medium text-red-300">{error}</p>}

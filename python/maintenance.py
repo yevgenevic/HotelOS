@@ -57,6 +57,8 @@ class MaintenanceService:
         if room_number not in self._hotel.rooms:
             return {"ok": False, "error": f"Unknown room: {room_number}"}
 
+        self._hotel.rooms[room_number].mark_maintenance()
+
         req = MaintenanceRequest(
             request_id=str(uuid.uuid4())[:8],
             room_number=room_number,
@@ -117,9 +119,22 @@ class MaintenanceService:
         if technician is None:
             return {"ok": False, "error": "Unknown or unassigned request"}
         technician.release()
+
+        req = self._requests.get(request_id)
+        if req is not None:
+            room = self._hotel.rooms.get(req.room_number)
+            if room is not None:
+                room.mark_dirty()
+                # Notify housekeeping so the room gets cleaned before re-assignment.
+                self._broker.publish(
+                    "room.vacated",
+                    {"room_number": req.room_number, "guest_id": None, "bill": None},
+                )
+
         self._broker.publish(
             "maintenance.resolved",
-            {"request_id": request_id, "technician": technician.name},
+            {"request_id": request_id, "technician": technician.name,
+             "room_number": req.room_number if req else None},
         )
         self.assign_next()
         return {"ok": True}

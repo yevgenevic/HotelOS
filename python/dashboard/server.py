@@ -5,6 +5,9 @@ import json
 import os
 import sys
 from typing import Set
+from urllib.parse import parse_qs, urlparse
+
+VALID_TOKEN = os.getenv("HOTELOS_TOKEN", "hotel2024")
 
 import websockets
 
@@ -44,7 +47,20 @@ class DashboardServer:
         self._clients: Set = set()
         self._loop: asyncio.AbstractEventLoop | None = None
 
+    @staticmethod
+    def _extract_token(websocket) -> str:
+        try:
+            path = websocket.path
+        except AttributeError:
+            path = websocket.request.path  # websockets >= 13
+        qs = parse_qs(urlparse(path).query)
+        return qs.get("token", [""])[0]
+
     async def _client(self, websocket):
+        token = self._extract_token(websocket)
+        if token != VALID_TOKEN:
+            await websocket.close(1008, "Unauthorized: invalid token")
+            return
         # Send snapshot first, then join the broadcast set, so the snapshot
         # is guaranteed to be the very first message the client sees.
         try:
@@ -59,10 +75,19 @@ class DashboardServer:
         finally:
             self._clients.discard(websocket)
 
+    @staticmethod
+    def _sanitise(channel: str, data: dict) -> dict:
+        """Strip sensitive fields before broadcasting to all clients."""
+        if channel == "room.vacated" and data.get("bill"):
+            bill = {k: v for k, v in data["bill"].items() if k != "charge_items"}
+            return {**data, "bill": bill}
+        return data
+
     def _on_event(self, channel: str, data: dict) -> None:
         if self._loop is None:
             return
-        payload = json.dumps({"channel": channel, "data": data}, default=str)
+        safe_data = self._sanitise(channel, data)
+        payload = json.dumps({"channel": channel, "data": safe_data}, default=str)
         asyncio.run_coroutine_threadsafe(self._broadcast(payload), self._loop)
 
     async def _broadcast(self, payload: str) -> None:

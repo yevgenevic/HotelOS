@@ -146,18 +146,23 @@ def main() -> int:
             evt.set()
 
         broker.subscribe("maintenance.assigned", cap)
+        # Use room 105 (Accessible, floor 1) — not needed by any later test.
         res = maintenance.submit_request(
-            "204", MaintenancePriority.CRITICAL, description="AC broken"
+            "105", MaintenancePriority.CRITICAL, description="AC broken"
         )
         assert res["ok"], f"submit failed: {res}"
         assert evt.wait(timeout=2.0), "no maintenance.assigned event received"
-        assert captured.get("room_number") == "204"
+        assert captured.get("room_number") == "105"
         assert captured.get("priority") == "CRITICAL"
         assert captured.get("technician") in {"Bobur", "Jahongir"}
-        print(
-            f"  Maintenance for 204 assigned to {captured['technician']} (CRITICAL)"
+        assert hotel.rooms["105"].status == RoomStatus.MAINTENANCE, (
+            f"expected MAINTENANCE, got {hotel.rooms['105'].status}"
         )
-    runs.case("TS-05 maintenance CRITICAL 204", ts05)
+        print(
+            f"  Maintenance for 105 assigned to {captured['technician']} (CRITICAL)"
+            f" | room status: {hotel.rooms['105'].status.value}"
+        )
+    runs.case("TS-05 maintenance CRITICAL 105", ts05)
 
     # --- TS-06: simultaneous check-ins, same type ----------------------
     def ts06() -> None:

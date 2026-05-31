@@ -100,11 +100,12 @@ class HotelEntity:
 
 
 class Room(HotelEntity):
-    def __init__(self, number: str, room_type: RoomType, floor: int):
+    def __init__(self, number: str, room_type: RoomType, floor: int, proximity: str = "middle"):
         super().__init__(number)
         self._number = number
         self._type = room_type
         self._floor = floor
+        self._proximity = proximity
         self._price = ROOM_PRICES[room_type]
         self._status = RoomStatus.CLEAN
         self._guest: Optional[Guest] = None
@@ -123,6 +124,10 @@ class Room(HotelEntity):
     @property
     def floor(self) -> int:
         return self._floor
+
+    @property
+    def proximity(self) -> str:
+        return self._proximity
 
     @property
     def price(self) -> float:
@@ -163,6 +168,10 @@ class Room(HotelEntity):
         with self._lock:
             self._status = RoomStatus.CLEANING
 
+    def mark_maintenance(self) -> None:
+        with self._lock:
+            self._status = RoomStatus.MAINTENANCE
+
     def mark_clean(self) -> None:
         with self._lock:
             self._status = RoomStatus.CLEAN
@@ -182,6 +191,7 @@ class Room(HotelEntity):
                 "number": self._number,
                 "type": self._type.value,
                 "floor": self._floor,
+                "proximity": self._proximity,
                 "price": self._price,
                 "status": self._status.value,
                 "guest": (
@@ -269,24 +279,24 @@ class Hotel:
     def standard_layout(cls) -> "Hotel":
         hotel = cls()
         floor1 = [
-            ("101", RoomType.SINGLE),
-            ("102", RoomType.DOUBLE),
-            ("103", RoomType.DOUBLE),
-            ("104", RoomType.SUITE),
-            ("105", RoomType.ACCESSIBLE),
+            ("101", RoomType.SINGLE, "elevator"),
+            ("102", RoomType.DOUBLE, "middle"),
+            ("103", RoomType.DOUBLE, "middle"),
+            ("104", RoomType.SUITE, "middle"),
+            ("105", RoomType.ACCESSIBLE, "stairs"),
         ]
         floor2 = [
-            ("201", RoomType.SINGLE),
-            ("202", RoomType.DOUBLE),
-            ("203", RoomType.DOUBLE),
-            ("204", RoomType.SUITE),
-            ("205", RoomType.ACCESSIBLE),
+            ("201", RoomType.SINGLE, "elevator"),
+            ("202", RoomType.DOUBLE, "middle"),
+            ("203", RoomType.DOUBLE, "middle"),
+            ("204", RoomType.SUITE, "middle"),
+            ("205", RoomType.ACCESSIBLE, "stairs"),
         ]
-        for num, t in floor1:
-            hotel.add_room(Room(num, t, floor=1))
+        for num, t, prox in floor1:
+            hotel.add_room(Room(num, t, floor=1, proximity=prox))
             time.sleep(0.001)  # ensure distinct cleaned_at timestamps
-        for num, t in floor2:
-            hotel.add_room(Room(num, t, floor=2))
+        for num, t, prox in floor2:
+            hotel.add_room(Room(num, t, floor=2, proximity=prox))
             time.sleep(0.001)
         return hotel
 

@@ -1,8 +1,16 @@
-import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 
 const MAX_ORDERS = 14
 const MAX_ACTIVITY = 20
 const WS_URL = import.meta.env.VITE_WS_URL
+
+const VALID_TOKEN = import.meta.env.VITE_HOTELOS_TOKEN || 'hotel2024'
+
+function getWsUrl() {
+  if (!WS_URL) return null
+  const token = localStorage.getItem('hotelos-token') || ''
+  return token === VALID_TOKEN ? `${WS_URL}?token=${encodeURIComponent(token)}` : null
+}
 
 let seq = 0
 const uid = (p) => `${p}-${Date.now().toString(36)}-${(seq++).toString(36)}`
@@ -444,7 +452,10 @@ function adaptBackendEnvelope(envelope) {
         assignedTo: null,
         reportedAt: Date.now(),
       }
-      return [{ type: 'maintenance:new', payload: ticket }]
+      return [
+        { type: 'maintenance:new', payload: ticket },
+        roomPatch(data.room_number, { status: 'MAINTENANCE' }),
+      ]
     }
     case 'maintenance.assigned':
       return [{
@@ -460,14 +471,15 @@ function adaptBackendEnvelope(envelope) {
 
 export function useMockHotelData() {
   const [state, dispatch] = useReducer(reducer, undefined, seed)
-  const [status, setStatus] = useState(WS_URL ? 'connecting' : 'mock')
+  const wsUrl = useMemo(getWsUrl, [])
+  const [status, setStatus] = useState(wsUrl ? 'connecting' : 'mock')
   const socketRef = useRef(null)
   const stateRef = useRef(state)
   stateRef.current = state
 
   useEffect(() => {
-    if (!WS_URL) return undefined
-    const socket = new WebSocket(WS_URL)
+    if (!wsUrl) return undefined
+    const socket = new WebSocket(wsUrl)
     socketRef.current = socket
     socket.onopen = () => setStatus('connected')
     socket.onclose = () => setStatus('mock')
