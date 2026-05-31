@@ -39,7 +39,7 @@ redis-server
 
 Ikkita terminal kerak. Redis ishlab turgani tekshiring.
 
-```bash
+```powershell
 # 1-terminal — Backend (Python + Redis)
 cd python
 pip install -r requirements.txt
@@ -49,6 +49,9 @@ python run_dashboard.py        # dashboard (ws://:8765) + jonli hodisa generator
 npm install
 npm run dev
 ```
+
+> **Eslatma:** Windows PowerShell 5.1 da `&&` ishlamaydi — har bir buyruqni
+> alohida qatorda yozing (yuqoridagi kabi) yoki `;` bilan ajrating.
 
 Brauzer ochiladi: **http://localhost:5173** · Login token: ixtiyoriy (≥4 belgi).
 
