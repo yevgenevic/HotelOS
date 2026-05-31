@@ -1,0 +1,261 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-gray-950 text-slate-200 antialiased;
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: 'cv11', 'ss01';
+  /* Layered light gives the dashboard a deeper cockpit feel. */
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.035) 1px, transparent 1px),
+    radial-gradient(60rem 60rem at 12% -10%, rgba(34, 211, 238, 0.18), transparent 60%),
+    radial-gradient(50rem 50rem at 100% 0%, rgba(129, 140, 248, 0.15), transparent 55%),
+    radial-gradient(45rem 45rem at 50% 120%, rgba(16, 185, 129, 0.1), transparent 60%);
+  background-size: 44px 44px, 44px 44px, auto, auto, auto;
+  background-attachment: fixed;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.04) 42%, transparent 58%),
+    radial-gradient(circle at 50% -10%, rgba(255, 255, 255, 0.08), transparent 36%);
+  opacity: 0.9;
+}
+
+.theme-day {
+  background:
+    radial-gradient(60rem 45rem at 18% -10%, rgba(14, 165, 233, 0.2), transparent 65%),
+    radial-gradient(48rem 40rem at 92% 8%, rgba(16, 185, 129, 0.14), transparent 60%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.24), rgba(15, 23, 42, 0.04));
+}
+
+.theme-day .panel,
+.theme-day .glass {
+  border-color: rgba(255, 255, 255, 0.16);
+  background-color: rgba(15, 23, 42, 0.58);
+}
+
+/* Accessible, consistent focus ring on every interactive element */
+*:focus-visible {
+  @apply outline-none ring-2 ring-indigo-400/80 ring-offset-2 ring-offset-gray-950;
+  border-radius: 0.5rem;
+}
+
+@layer components {
+  /* Glassmorphism surface — used by every panel and inner card */
+  .glass {
+    @apply border border-white/10 bg-white/[0.055] backdrop-blur-xl;
+  }
+  .panel {
+    @apply glass rounded-2xl shadow-[0_22px_70px_rgba(0,0,0,0.28)];
+  }
+  /* Tabular figures keep numbers from jittering as values update */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+}
+
+@layer utilities {
+  /* Slim, theme-matched scrollbar for the scrollable feeds */
+  .scroll-area {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+  }
+  .scroll-area::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scroll-area::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scroll-area::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 9999px;
+  }
+  .scroll-area::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.24);
+  }
+  /* Fade the top/bottom edge of scroll feeds so content melts in/out */
+  .mask-fade-y {
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      #000 12px,
+      #000 calc(100% - 12px),
+      transparent
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      #000 12px,
+      #000 calc(100% - 12px),
+      transparent
+    );
+  }
+}
+
+.hero-shell {
+  background:
+    radial-gradient(24rem 18rem at 73% 28%, rgba(34, 211, 238, 0.22), transparent 65%),
+    radial-gradient(22rem 18rem at 18% 65%, rgba(16, 185, 129, 0.12), transparent 68%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(2, 6, 23, 0.74));
+  box-shadow:
+    0 28px 90px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.hero-grid {
+  background-image:
+    linear-gradient(rgba(125, 211, 252, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(125, 211, 252, 0.08) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(circle at 70% 50%, #000, transparent 72%);
+}
+
+.hotel-stage {
+  transform-style: preserve-3d;
+  perspective: 1200px;
+}
+
+.hotel-shadow {
+  position: absolute;
+  inset: 18% 5% 4%;
+  transform: translateZ(-84px);
+  border-radius: 999px;
+  background: radial-gradient(ellipse, rgba(34, 211, 238, 0.24), rgba(2, 6, 23, 0) 68%);
+  filter: blur(8px);
+}
+
+.hotel-base {
+  position: absolute;
+  inset: 74% 5% 7%;
+  transform: translateZ(-10px);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 1.15rem;
+  background:
+    linear-gradient(135deg, rgba(148, 163, 184, 0.28), rgba(30, 41, 59, 0.82)),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.2), rgba(16, 185, 129, 0.16));
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.34);
+}
+
+.hotel-tower {
+  position: absolute;
+  inset: 4% 16% 16%;
+  transform: translateZ(66px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 1.2rem;
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.13), transparent 38%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.94), rgba(30, 41, 59, 0.78));
+  box-shadow:
+    0 22px 60px rgba(0, 0, 0, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  padding-top: 1rem;
+}
+
+.hotel-side {
+  position: absolute;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background:
+    linear-gradient(180deg, rgba(14, 165, 233, 0.2), rgba(15, 23, 42, 0.78)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 24px);
+  filter: saturate(1.15);
+}
+
+.hotel-side-right {
+  inset: 11% 8% 20% auto;
+  width: 2.75rem;
+  transform: rotateY(72deg) translateZ(47px);
+  transform-origin: left center;
+  border-radius: 0 1rem 1rem 0;
+}
+
+.hotel-side-left {
+  inset: 11% auto 20% 8%;
+  width: 2rem;
+  transform: rotateY(-68deg) translateZ(34px);
+  transform-origin: right center;
+  border-radius: 1rem 0 0 1rem;
+  opacity: 0.72;
+}
+
+.floating-chip {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.68);
+  padding: 0.65rem 0.85rem;
+  color: rgb(226, 232, 240);
+  font-size: 0.75rem;
+  font-weight: 700;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(18px);
+}
+
+.hero-shell [class*='rounded-full border border-cyan'] {
+  animation: signal-ring 3.6s ease-out infinite;
+}
+
+.hotel-tower .grid span {
+  animation: window-glow 2.8s ease-in-out infinite;
+}
+
+@keyframes signal-ring {
+  0% {
+    transform: scale(0.74);
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.08);
+    opacity: 0;
+  }
+}
+
+@keyframes window-glow {
+  0%,
+  100% {
+    filter: brightness(0.92);
+    opacity: 0.68;
+  }
+  50% {
+    filter: brightness(1.22);
+    opacity: 1;
+  }
+}
+
+/* Honour the OS "reduce motion" setting for any CSS-driven animation.
+   Framer Motion animations are additionally guarded in JS via useReducedMotion(). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
