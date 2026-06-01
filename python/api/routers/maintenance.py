@@ -89,12 +89,13 @@ def assign_issue(
 @router.patch("/issues/{request_id}/resolve", summary="Resolve a maintenance request")
 def resolve_issue(
     request_id: str,
+    notes: str = "",
     db: Session = Depends(get_db),
     _: User = Depends(require_roles("technician")),
 ):
     if state.maintenance is None:
         raise HTTPException(503, "Service unavailable: start with Redis running")
-    result = state.maintenance.resolve(request_id)
+    result = state.maintenance.resolve(request_id, notes)
     if not result.get("ok"):
         raise HTTPException(400, result.get("error", "Failed to resolve request"))
     row = db.query(MaintenanceRecord).filter(
@@ -102,5 +103,6 @@ def resolve_issue(
     ).first()
     if row:
         row.status = "RESOLVED"
+        row.resolution_notes = notes
         db.commit()
     return result

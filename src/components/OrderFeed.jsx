@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import StatusBadge from './StatusBadge'
 import { useToast } from './Toast'
@@ -9,12 +9,12 @@ import { TrayIcon, PlusIcon, XIcon, CheckIcon } from '../lib/icons'
 const money = new Intl.NumberFormat('uz-UZ')
 
 const MOCK_MENU = [
-  { id: 'm1', name: 'Qahva', price: 28000 },
-  { id: 'm2', name: 'Sandvich', price: 42000 },
-  { id: 'm3', name: 'Osh', price: 48000 },
-  { id: 'm4', name: 'Sezar salat', price: 52000 },
-  { id: 'm5', name: 'Margarita pitsa', price: 78000 },
-  { id: 'm6', name: 'Mineral suv', price: 9000 },
+  { id: 'm1', name: 'Qahva', price: 28000, category: 'drink' },
+  { id: 'm2', name: 'Sandvich', price: 42000, category: 'food' },
+  { id: 'm3', name: 'Osh', price: 48000, category: 'food' },
+  { id: 'm4', name: 'Sezar salat', price: 52000, category: 'food' },
+  { id: 'm5', name: 'Margarita pitsa', price: 78000, category: 'food' },
+  { id: 'm6', name: 'Mineral suv', price: 9000, category: 'drink' },
 ]
 
 const PROGRESS_STEPS = {
@@ -86,7 +86,7 @@ const OrderRow = forwardRef(function OrderRow({ order, canAct, onAdvance }, ref)
     toast(
       res.ok
         ? `Xona ${order.room} buyurtmasi: ${ORDER_STATUS[next.frontStatus].label}`
-        : `Xona ${order.room} buyurtmasi: ${ORDER_STATUS[next.frontStatus].label} (demo)`,
+        : `Xona ${order.room} buyurtmasi: ${ORDER_STATUS[next.frontStatus].label}`,
       'success',
     )
     setLoading(false)
@@ -94,8 +94,8 @@ const OrderRow = forwardRef(function OrderRow({ order, canAct, onAdvance }, ref)
   const summary = order.items.map((i) => `${i.qty}× ${i.name}`).join(' · ')
   return (
     <motion.li ref={ref} layout variants={item} initial="initial" animate="animate" exit="exit">
-      <div className="glass rounded-xl p-3">
-        <div className="flex items-center justify-between gap-2">
+      <div className="glass rounded-xl p-3 relative">
+        <div className="relative z-10 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-md bg-white/10 px-2 py-0.5 text-xs font-semibold text-slate-200">
               <TrayIcon className="h-3.5 w-3.5 text-slate-400" />
@@ -105,15 +105,15 @@ const OrderRow = forwardRef(function OrderRow({ order, canAct, onAdvance }, ref)
           </div>
           <StatusBadge status={order.status} map={ORDER_STATUS} size="xs" />
         </div>
-        <p className="mt-2 line-clamp-2 text-sm text-slate-300">{summary}</p>
+        <p className="relative z-10 mt-2 line-clamp-2 text-sm text-slate-300">{summary}</p>
         {order.status !== 'DELIVERED' && <OrderProgress status={order.status} />}
-        <div className="mt-3 flex items-center justify-between gap-3">
+        <div className="relative z-10 mt-3 flex items-center justify-between gap-3">
           {canAct && next ? (
             <button
               type="button"
               onClick={handleAdvance}
               disabled={loading}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-violet-400/30 bg-violet-500/10 px-2.5 text-[11px] font-bold text-violet-200 transition hover:bg-violet-500/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+              className="glass-button inline-flex h-8 items-center gap-1.5 rounded-lg border border-violet-400/30 bg-violet-500/10 px-2.5 text-[11px] font-bold text-violet-200 transition hover:bg-violet-500/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? <SpinnerSvg className="h-3 w-3" /> : <CheckIcon className="h-3 w-3" />}
               {next.label}
@@ -137,6 +137,12 @@ function OrderForm({ menu, onSubmit, onCancel }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [shakeKey, setShakeKey] = useState(0)
+  const [activeCategory, setActiveCategory] = useState('ALL')
+
+  const filteredMenu = useMemo(() => {
+    if (activeCategory === 'ALL') return menu
+    return menu.filter((item) => item.category === activeCategory)
+  }, [menu, activeCategory])
 
   const total = menu.reduce((s, item) => s + item.price * (qty[item.id] || 0), 0)
 
@@ -172,9 +178,9 @@ function OrderForm({ menu, onSubmit, onCancel }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.18 }}
-      className="glass rounded-xl p-4 mb-3"
+      className="glass rounded-xl p-4 mb-3 relative"
     >
-      <div className="flex items-center justify-between mb-3">
+      <div className="relative z-10 flex items-center justify-between mb-3">
         <p className="text-sm font-bold text-white">Yangi buyurtma</p>
         <button
           type="button"
@@ -191,11 +197,32 @@ function OrderForm({ menu, onSubmit, onCancel }) {
           onChange={(e) => { setRoom(e.target.value); setError('') }}
           type="text"
           placeholder="Xona raqami"
-          className="w-full rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-cyan-300/50 focus:outline-none focus:ring-1 focus:ring-cyan-300/30 transition"
+          className="glass-input w-full rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-cyan-300/50 focus:outline-none focus:ring-1 focus:ring-cyan-300/30 transition"
         />
 
+        <div className="flex gap-1.5 py-0.5">
+          {[
+            { id: 'ALL', label: 'Barchasi' },
+            { id: 'food', label: 'Taomlar' },
+            { id: 'drink', label: 'Ichimliklar' }
+          ].map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setActiveCategory(cat.id)}
+              className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition active:scale-95 border ${
+                activeCategory === cat.id
+                  ? 'border-violet-400/40 bg-violet-500/15 text-violet-200'
+                  : 'border-white/5 bg-white/5 text-slate-400 hover:text-slate-300'
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
         <div className="flex flex-wrap gap-2">
-          {menu.map((m) => {
+          {filteredMenu.map((m) => {
             const count = qty[m.id] || 0
             const active = count > 0
             return (
@@ -254,7 +281,7 @@ function OrderForm({ menu, onSubmit, onCancel }) {
           <button
             type="submit"
             disabled={loading}
-            className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-xl bg-cyan-300 px-4 text-xs font-black text-slate-950 transition hover:bg-cyan-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+            className="glass-button ml-auto inline-flex h-9 items-center gap-1.5 rounded-xl bg-cyan-300 px-4 text-xs font-black text-slate-950 transition hover:bg-cyan-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? <SpinnerSvg className="h-3.5 w-3.5" /> : null}
             Yuborish
@@ -277,7 +304,14 @@ export default function OrderFeed({ orders, role, onPlaceOrder, onAdvanceOrder }
     api.getMenu().then((res) => {
       if (res.ok && Array.isArray(res.data?.items ?? res.data)) {
         const items = res.data?.items ?? res.data
-        setMenu(items.map((i, idx) => ({ id: i.id ?? `api-${idx}`, name: i.name, price: i.price })))
+        setMenu(items.map((i, idx) => {
+          let category = 'food'
+          const nameLower = i.name.toLowerCase()
+          if (nameLower.includes('qahva') || nameLower.includes('suv') || nameLower.includes('tea') || nameLower.includes('coffee') || nameLower.includes('water') || nameLower.includes('juice') || nameLower.includes('ichimlik')) {
+            category = 'drink'
+          }
+          return { id: i.id ?? `api-${idx}`, name: i.name, price: i.price, category }
+        }))
       }
     })
   }, [canOrder])
@@ -291,14 +325,14 @@ export default function OrderFeed({ orders, role, onPlaceOrder, onAdvanceOrder }
       toast(`Xona ${room} buyurtmasi qabul qilindi`, 'success')
     } else {
       onPlaceOrder(room, items)
-      toast(`Xona ${room} buyurtmasi qabul qilindi (demo)`, 'success')
+      toast(`Xona ${room} buyurtmasi qabul qilindi`, 'success')
     }
     setShowForm(false)
   }
 
   return (
-    <section className="panel flex max-h-[30rem] flex-col p-5">
-      <div className="flex items-center justify-between gap-2.5">
+    <section className="panel glass-shimmer flex max-h-[30rem] flex-col p-5">
+      <div className="relative z-10 flex items-center justify-between gap-2.5">
         <div className="flex items-center gap-2.5">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-violet-500/15 text-violet-300">
             <TrayIcon className="h-5 w-5" />
@@ -315,7 +349,7 @@ export default function OrderFeed({ orders, role, onPlaceOrder, onAdvanceOrder }
           <button
             type="button"
             onClick={() => setShowForm((v) => !v)}
-            className={`inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition active:scale-95 ${
+            className={`glass-button inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition active:scale-95 ${
               showForm
                 ? 'border-slate-400/20 bg-white/5 text-slate-400 hover:bg-white/10'
                 : 'border-violet-400/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20'

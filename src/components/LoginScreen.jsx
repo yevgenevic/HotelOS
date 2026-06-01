@@ -94,10 +94,10 @@ export default function LoginScreen({ onLogin, validToken = 'hotel2024' }) {
         animate={{ opacity: 1, y: 0, rotateX: 0 }}
         transition={{ type: 'spring', stiffness: 260, damping: 28 }}
         onSubmit={submit}
-        className="panel relative w-full max-w-md overflow-hidden p-6 shadow-[0_28px_90px_rgba(0,0,0,0.42)]"
+        className="panel glass-shimmer relative w-full max-w-md overflow-hidden p-6 shadow-[0_28px_90px_rgba(0,0,0,0.42)]"
       >
         <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/12 via-transparent to-emerald-400/10" />
-        <div className="relative">
+        <div className="relative z-10">
           <span className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-cyan-400 to-indigo-500 text-white shadow-lg shadow-cyan-500/25">
             <BuildingIcon className="h-7 w-7" />
           </span>
@@ -116,7 +116,7 @@ export default function LoginScreen({ onLogin, validToken = 'hotel2024' }) {
           <label className="mt-4 block text-xs font-semibold uppercase tracking-wide text-slate-400">
             Password
           </label>
-          <div className="mt-2 flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 focus-within:ring-2 focus-within:ring-cyan-300/60 transition">
+          <div className="mt-2 glass-input rounded-xl px-3 py-2.5 flex items-center gap-2 transition">
             <LockIcon className="h-4 w-4 text-slate-400" />
             <input
               value={password}
@@ -131,7 +131,7 @@ export default function LoginScreen({ onLogin, validToken = 'hotel2024' }) {
 
           <button
             type="submit"
-            className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 px-4 text-sm font-black text-slate-950 shadow-lg shadow-cyan-400/20 transition hover:bg-cyan-200 active:scale-[0.98]"
+            className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl glass-button px-4 text-sm font-black text-cyan-100 transition active:scale-[0.98]"
           >
             <LockIcon className="h-4 w-4" />
             Kirish

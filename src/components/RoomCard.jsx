@@ -63,19 +63,19 @@ const RoomCard = forwardRef(function RoomCard(
     >
       <motion.div
         style={reduce ? undefined : { rotateX, rotateY, transformPerspective: 900 }}
-        className={`panel relative h-full overflow-hidden rounded-2xl p-4 ring-1 ring-white/5 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_28px_80px_rgba(0,0,0,0.42)] ${cfg.ring}`}
+        className={`panel glass-shimmer relative h-full overflow-hidden rounded-2xl p-4 ring-1 ring-white/5 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-[0_28px_80px_rgba(0,0,0,0.42)] ${cfg.ring}`}
       >
         {/* Hover glow layers */}
-        <div className="pointer-events-none absolute -inset-10 opacity-0 blur-3xl transition-opacity duration-300 group-hover:opacity-100">
+        <div className="pointer-events-none absolute -inset-10 z-10 opacity-0 blur-3xl transition-opacity duration-300 group-hover:opacity-100">
           <div className={`h-full w-full bg-gradient-to-br ${cfg.glow} via-cyan-400/10 to-transparent`} />
         </div>
         <div
-          className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${cfg.glow} via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
+          className={`pointer-events-none absolute inset-0 z-10 bg-gradient-to-br ${cfg.glow} via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100`}
         />
-        <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+        <div className="pointer-events-none absolute inset-x-8 top-0 z-10 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
         {/* Status accent bar */}
-        <div className={`absolute inset-x-0 top-0 h-1 ${cfg.bar} opacity-80 transition-colors duration-500`} />
+        <div className={`absolute inset-x-0 top-0 z-10 h-1 ${cfg.bar} opacity-80 transition-colors duration-500`} />
 
         {/* Pulsing border highlight (housekeeper dirty / technician maintenance) */}
         {isHighlighted && !reduce && (
@@ -88,18 +88,18 @@ const RoomCard = forwardRef(function RoomCard(
 
         {/* Quick checkout overlay (receptionist only, OCCUPIED rooms) */}
         {onQuickCheckout && room.status === 'OCCUPIED' && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-black/65 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-white/80 backdrop-blur-sm opacity-0 transition-opacity duration-200 group-hover:opacity-100">
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onQuickCheckout(room.number) }}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-cyan-300 px-4 text-xs font-bold text-slate-950 shadow-lg transition hover:bg-cyan-200 active:scale-95"
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-indigo-500 px-4 text-xs font-bold text-white shadow-lg transition hover:bg-indigo-400 active:scale-95"
             >
               Checkout
             </button>
           </div>
         )}
 
-        <div className="relative flex items-start justify-between gap-2">
+        <div className="relative z-10 flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Xona</p>
             <p className="tnum text-3xl font-bold leading-tight text-white">{room.number}</p>
@@ -107,12 +107,12 @@ const RoomCard = forwardRef(function RoomCard(
           <StatusBadge status={room.status} map={ROOM_STATUS} size="xs" />
         </div>
 
-        <div className="relative mt-2 flex min-w-0 items-center gap-1.5 text-sm text-slate-300">
+        <div className="relative z-10 mt-2 flex min-w-0 items-center gap-1.5 text-sm text-slate-300">
           <BedIcon className="h-4 w-4 shrink-0 text-slate-400" />
           <span className="truncate">{room.type}</span>
         </div>
 
-        <div className="relative mt-3 border-t border-white/10 pt-3">
+        <div className="relative z-10 mt-3 border-t border-white/10 pt-3">
           {room.guest ? (
             <div className="flex items-center gap-2">
               <span className={`grid h-7 w-7 place-items-center rounded-full ${cfg.chip}`}>

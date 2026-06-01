@@ -1,21 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useMockHotelData } from './hooks/useMockHotelData'
-import { BuildingIcon, MoonIcon, SunIcon, PlusIcon, LogOutIcon } from './lib/icons'
+import { BuildingIcon, PlusIcon, LogOutIcon } from './lib/icons'
 import { SPRING } from './lib/constants'
 import { ToastProvider } from './components/Toast'
-import ConnectionStatus from './components/ConnectionStatus'
 import StatBar from './components/StatBar'
 import RoomGrid from './components/RoomGrid'
 import OrderFeed from './components/OrderFeed'
 import MaintenancePanel from './components/MaintenancePanel'
 import ActivityLog from './components/ActivityLog'
-import HeroScene from './components/HeroScene'
 import LoginScreen from './components/LoginScreen'
 import CommandBar from './components/CommandBar'
 import RoomDetailModal from './components/RoomDetailModal'
 import CheckInModal from './components/CheckInModal'
 import HousekeepingPanel from './components/HousekeepingPanel'
+import CheckoutArchive from './components/CheckoutArchive'
+import AdminAnalytics from './components/AdminAnalytics'
+import { GlassFilter } from './components/ui/LiquidGlass'
 
 const VALID_TOKEN = import.meta.env.VITE_HOTELOS_TOKEN || 'hotel2024'
 
@@ -34,7 +35,7 @@ const ROLE_CONFIG = {
     showCheckinFAB: true,
     showQuickCheckout: true,
     layout: 'rooms-first',
-    tabs: [['rooms', 'Xonalar'], ['activity', 'Log']],
+    tabs: [['rooms', 'Xonalar'], ['archive', 'Arxiv'], ['activity', 'Log']],
     defaultTab: 'rooms',
     highlightStatuses: [],
     roomGridReadOnly: false,
@@ -110,8 +111,10 @@ const ROLE_CONFIG = {
       ['rooms', 'Xonalar'],
       ['service', 'Servis'],
       ['maintenance', 'Texnik'],
-      ['activity', 'Log'],
+      ['analytics', 'Analitika'],
+      ['archive', 'Arxiv'],
       ['housekeeping', 'Tozalik'],
+      ['activity', 'Log'],
     ],
     defaultTab: 'rooms',
     highlightStatuses: [],
@@ -137,6 +140,8 @@ export default function App() {
     status,
     mode,
     notice,
+    checkouts,
+    clearCheckoutArchive,
     assignTicket,
     resolveTicket,
     checkinGuest,
@@ -149,7 +154,6 @@ export default function App() {
 
   const [authed, setAuthed] = useState(() => localStorage.getItem('hotelos-token')?.length > 0)
   const [role, setRole] = useState(getRole)
-  const [theme, setTheme] = useState(() => localStorage.getItem('hotelos-theme') || 'night')
   const [query, setQuery] = useState('')
   const [selectedFloor, setSelectedFloor] = useState('ALL')
   const [selectedRoom, setSelectedRoom] = useState(null)
@@ -163,9 +167,7 @@ export default function App() {
     setActiveTab((ROLE_CONFIG[role] ?? ROLE_CONFIG.admin).defaultTab)
   }, [role])
 
-  useEffect(() => {
-    localStorage.setItem('hotelos-theme', theme)
-  }, [theme])
+
 
   const selectedRoomLive = useMemo(
     () => (selectedRoom ? rooms.find((r) => r.id === selectedRoom.id) ?? selectedRoom : null),
@@ -204,9 +206,11 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <div className={`min-h-dvh ${theme === 'day' ? 'theme-day' : ''}`}>
+      <div className="min-h-dvh">
+        {/* Global SVG distortion filter for liquid glass effects */}
+        <GlassFilter />
         {/* ── Header ─────────────────────────────────────────────────── */}
-        <header className="sticky top-0 z-30 border-b border-white/5 bg-gray-950/70 backdrop-blur-xl">
+        <header className="sticky top-0 z-30 glass-header">
           <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 py-3.5 sm:px-6 lg:px-8">
             <div className="flex items-center gap-3">
               <span
@@ -217,24 +221,12 @@ export default function App() {
               <div className="leading-tight">
                 <div className="flex items-center gap-2">
                   <h1 className="text-lg font-bold tracking-tight text-white">HotelOS</h1>
-                  <span className="hidden rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400 sm:inline-flex">
-                    {mode}
-                  </span>
                 </div>
                 <p className="hidden text-xs text-slate-400 sm:block">{cfg.label}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <ConnectionStatus status={status} />
-              <button
-                type="button"
-                onClick={() => setTheme((v) => (v === 'night' ? 'day' : 'night'))}
-                aria-label="Rang rejimini almashtirish"
-                className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/5 text-slate-200 transition hover:bg-white/10"
-              >
-                {theme === 'night' ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
-              </button>
               <button
                 type="button"
                 onClick={logout}
@@ -256,7 +248,6 @@ export default function App() {
 
         {/* ── Main ───────────────────────────────────────────────────── */}
         <main className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8">
-          <HeroScene />
           <CommandBar query={query} onQueryChange={setQuery} notice={notice} />
 
           {cfg.showStatBar && (
@@ -266,19 +257,18 @@ export default function App() {
           )}
 
 
-          {/* Mobile tabs */}
-          <div
-            className="mt-6 grid gap-2 xl:hidden"
-            style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}
-          >
+          {/* Universal tabs — liquid glass style */}
+          <div className="mt-6 flex flex-wrap gap-2">
             {tabs.map(([id, label]) => (
               <button
                 key={id}
                 type="button"
                 onClick={() => setActiveTab(id)}
                 aria-pressed={activeTab === id}
-                className={`rounded-xl border px-2 py-2 text-xs font-black transition ${
-                  activeTab === id ? cfg.tabActive : 'border-white/10 bg-white/5 text-slate-400'
+                className={`rounded-xl px-3.5 py-2.5 text-xs font-black transition active:scale-95 ${
+                  activeTab === id
+                    ? 'glass-tab glass-tab-active'
+                    : 'glass-tab text-slate-400 hover:text-slate-200'
                 }`}
               >
                 {label}
@@ -289,46 +279,63 @@ export default function App() {
           {/* ── Layout: rooms-first (receptionist, housekeeper, admin) ── */}
           {layout === 'rooms-first' && (
             <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
-              <div
-                className={`xl:col-span-2 xl:block ${
-                  activeTab === 'rooms' || activeTab === 'housekeeping' ? 'block' : 'hidden'
-                }`}
-              >
-                <div className={`xl:block ${activeTab === 'housekeeping' ? 'hidden' : 'block'}`}>
+              <div className="xl:col-span-2">
+                {activeTab === 'rooms' && (
                   <RoomGrid {...roomGridProps} />
-                </div>
-                {cfg.showHousekeeping && (
-                  <div className={`mt-6 xl:block ${activeTab === 'housekeeping' ? 'block' : 'hidden'}`}>
-                    <HousekeepingPanel role={role} rooms={rooms} />
-                  </div>
                 )}
+                {activeTab === 'service' && (
+                  <OrderFeed
+                    orders={orders}
+                    role={role}
+                    onPlaceOrder={addOrderMock}
+                    onAdvanceOrder={advanceOrder}
+                  />
+                )}
+                {activeTab === 'maintenance' && (
+                  <MaintenancePanel
+                    maintenance={maintenance}
+                    onAssign={assignTicket}
+                    onResolve={resolveTicket}
+                    onAddIssue={addIssueMock}
+                    role={role}
+                  />
+                )}
+                {activeTab === 'analytics' && (
+                  <AdminAnalytics rooms={rooms} orders={orders} checkouts={checkouts} />
+                )}
+                {activeTab === 'archive' && (
+                  <CheckoutArchive checkouts={checkouts} onClearArchive={clearCheckoutArchive} />
+                )}
+                {activeTab === 'housekeeping' && cfg.showHousekeeping && (
+                  <HousekeepingPanel role={role} rooms={rooms} />
+                )}
+                {activeTab === 'activity' && (
+                  <ActivityLog activity={activity} />
+                )}
+
               </div>
 
-              <div className="contents xl:block">
-                {cfg.showOrderFeed && (
-                  <div className={`xl:block ${activeTab === 'service' ? 'block' : 'hidden'}`}>
-                    <OrderFeed
-                      orders={orders}
-                      role={role}
-                      onPlaceOrder={addOrderMock}
-                      onAdvanceOrder={advanceOrder}
-                    />
-                  </div>
+              <div className="hidden xl:flex xl:flex-col xl:gap-6">
+                {cfg.showOrderFeed && activeTab !== 'service' && (
+                  <OrderFeed
+                    orders={orders}
+                    role={role}
+                    onPlaceOrder={addOrderMock}
+                    onAdvanceOrder={advanceOrder}
+                  />
                 )}
-                {cfg.showMaintenance && (
-                  <div className={`mt-6 xl:block ${activeTab === 'maintenance' ? 'block' : 'hidden'}`}>
-                    <MaintenancePanel
-                      maintenance={maintenance}
-                      onAssign={assignTicket}
-                      onResolve={resolveTicket}
-                      onAddIssue={addIssueMock}
-                      role={role}
-                    />
-                  </div>
+                {cfg.showMaintenance && activeTab !== 'maintenance' && (
+                  <MaintenancePanel
+                    maintenance={maintenance}
+                    onAssign={assignTicket}
+                    onResolve={resolveTicket}
+                    onAddIssue={addIssueMock}
+                    role={role}
+                  />
                 )}
-                <div className={`mt-6 xl:block ${activeTab === 'activity' ? 'block' : 'hidden'}`}>
+                {activeTab !== 'activity' && (
                   <ActivityLog activity={activity} />
-                </div>
+                )}
               </div>
             </div>
           )}
@@ -383,7 +390,7 @@ export default function App() {
           )}
 
           <footer className="mt-8 pb-4 text-center text-xs text-slate-600">
-            HotelOS · real-time operatsion monitoring · WebSocket yoki mock oqim bilan ishlaydi
+            HotelOS · real-time operatsion boshqaruv tizimi
           </footer>
         </main>
 

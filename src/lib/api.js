@@ -36,7 +36,7 @@ export const updateOrderStatus = (id, status) =>
   req('PATCH', `/roomservice/orders/${id}?status=${encodeURIComponent(status)}`)
 export const submitIssue = (body) => req('POST', '/maintenance/issues', body)
 export const listIssues = () => req('GET', '/maintenance/issues')
-export const resolveIssue = (id) => req('PATCH', `/maintenance/issues/${id}/resolve`)
+export const resolveIssue = (id, notes = '') => req('PATCH', `/maintenance/issues/${id}/resolve?notes=${encodeURIComponent(notes)}`)
 export const assignIssue = (id) => req('PATCH', `/maintenance/issues/${id}/assign`)
 export const getHousekeepingQueue = () => req('GET', '/housekeeping/queue')
 export const startCleaning = (body) => req('POST', '/housekeeping/start', body)

@@ -58,4 +58,5 @@ class MaintenanceRecord(Base):
     description = Column(Text)
     status = Column(String, default="OPEN")
     assigned_to = Column(String, nullable=True)
+    resolution_notes = Column(Text, nullable=True)
     created_at = Column(Float)

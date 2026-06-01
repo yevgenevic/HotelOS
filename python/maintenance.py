@@ -206,7 +206,7 @@ class MaintenanceService:
         )
         return {"request_id": req.request_id, "technician": technician.name}
 
-    def resolve(self, request_id: str) -> dict:
+    def resolve(self, request_id: str, notes: str = "") -> dict:
         """
         Mark a maintenance request as resolved.
 
@@ -243,6 +243,7 @@ class MaintenanceService:
                 "request_id":  request_id,
                 "technician":  technician.name,
                 "room_number": req.room_number if req else None,
+                "notes":       notes,
             },
         )
         self.assign_next()                        # Step 5

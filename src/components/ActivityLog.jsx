@@ -35,8 +35,8 @@ const EventRow = forwardRef(function EventRow({ event }, ref) {
  */
 export default function ActivityLog({ activity }) {
   return (
-    <section className="panel flex max-h-[24rem] flex-col p-5">
-      <div className="flex items-center gap-2.5">
+    <section className="panel glass-shimmer flex max-h-[24rem] flex-col p-5">
+      <div className="relative z-10 flex items-center gap-2.5">
         <span className="grid h-9 w-9 place-items-center rounded-xl bg-sky-500/15 text-sky-300">
           <ActivityIcon className="h-5 w-5" />
         </span>
@@ -46,7 +46,7 @@ export default function ActivityLog({ activity }) {
         </div>
       </div>
 
-      <div className="scroll-area mask-fade-y mt-4 flex-1 overflow-y-auto pr-1">
+      <div className="relative z-10 scroll-area mask-fade-y mt-4 flex-1 overflow-y-auto pr-1">
         {activity.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 py-10 text-center">
             <ActivityIcon className="h-8 w-8 text-slate-600" />

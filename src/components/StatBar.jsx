@@ -41,13 +41,13 @@ function StatCard({ icon, label, value, tone, index }) {
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4, rotateX: 4, rotateY: -3 }}
       transition={{ ...SPRING, delay: index * 0.04 }}
-      className="panel group relative flex items-center gap-3 overflow-hidden p-3.5 [transform-style:preserve-3d]"
+      className="panel glass-shimmer group relative flex items-center gap-3 overflow-hidden p-3.5 [transform-style:preserve-3d]"
     >
-      <span className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-      <span className={`relative grid h-10 w-10 shrink-0 place-items-center rounded-xl ${tone.bg} ${tone.fg} shadow-[0_12px_32px_rgba(0,0,0,0.22)]`}>
+      <span className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-br from-white/10 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      <span className={`relative z-10 grid h-10 w-10 shrink-0 place-items-center rounded-xl ${tone.bg} ${tone.fg} shadow-[0_12px_32px_rgba(0,0,0,0.22)]`}>
         <Icon name={icon} className="h-5 w-5" />
       </span>
-      <div className="relative min-w-0">
+      <div className="relative z-10 min-w-0">
         <div className="text-2xl font-bold leading-none text-white">
           <AnimatedNumber value={value} />
         </div>

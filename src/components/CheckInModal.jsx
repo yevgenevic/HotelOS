@@ -127,7 +127,7 @@ export default function CheckInModal({ open, onClose, checkinGuest }) {
       toast(`${name} joylashtirildi`, 'success')
     } else {
       checkinGuest({ name: name.trim(), type, floor: floor || undefined, proximity: proximity || undefined })
-      toast(`${name} joylashtirildi (demo)`, 'success')
+      toast(`${name} joylashtirildi`, 'success')
       handleClose()
     }
     setLoading(false)
@@ -137,7 +137,7 @@ export default function CheckInModal({ open, onClose, checkinGuest }) {
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-50 grid place-items-center bg-slate-950/70 px-4 py-8 backdrop-blur-xl"
+          className="fixed inset-0 z-50 grid place-items-center glass-backdrop px-4 py-8"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -151,11 +151,11 @@ export default function CheckInModal({ open, onClose, checkinGuest }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.96 }}
             transition={{ type: 'spring', stiffness: 280, damping: 28 }}
-            className="panel relative w-full max-w-md p-6"
+            className="panel glass-shimmer relative w-full max-w-md p-6"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/10 via-transparent to-indigo-500/8" />
 
-            <div className="relative flex items-center justify-between mb-5">
+            <div className="relative z-10 flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
                 <span className="grid h-10 w-10 place-items-center rounded-xl bg-cyan-500/15 text-cyan-300">
                   <BedIcon className="h-5 w-5" />
@@ -172,7 +172,7 @@ export default function CheckInModal({ open, onClose, checkinGuest }) {
               </button>
             </div>
 
-            <div className="relative">
+            <div className="relative z-10">
               {success ? (
                 <SuccessView name={name} data={success} onClose={handleClose} />
               ) : (
@@ -181,7 +181,7 @@ export default function CheckInModal({ open, onClose, checkinGuest }) {
                     <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">
                       Mehmon ismi <span className="text-red-400">*</span>
                     </label>
-                    <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5 transition focus-within:border-cyan-300/50 focus-within:ring-1 focus-within:ring-cyan-300/30">
+                    <div className="glass-input rounded-xl px-3 py-2.5 flex items-center gap-2 transition">
                       <UserIcon className="h-4 w-4 shrink-0 text-slate-400" />
                       <input
                         value={name}
@@ -235,7 +235,7 @@ export default function CheckInModal({ open, onClose, checkinGuest }) {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 px-4 text-sm font-black text-slate-950 shadow-lg shadow-cyan-400/20 transition hover:bg-cyan-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl glass-button px-4 text-sm font-black text-cyan-100 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {loading ? (
                       <>

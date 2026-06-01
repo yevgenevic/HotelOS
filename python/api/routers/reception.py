@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import time
 from dataclasses import asdict
 from typing import Optional
@@ -35,8 +36,17 @@ def check_in(
 ):
     if state.reception is None:
         raise HTTPException(503, "Service unavailable: start with Redis running")
+    
+    # Strict validation & XSS sanitization
+    name = body.guest_name.strip()
+    name = re.sub(r'<[^>]*>', '', name)
+    if len(name) < 2 or len(name) > 60:
+        raise HTTPException(400, "Guest name must be between 2 and 60 characters")
+    if not re.match(r"^[a-zA-Z0-9\s\'\-а-яА-ЯёЁўЎқҚғҒҳҲ]+$", name):
+        raise HTTPException(400, "Guest name contains invalid characters")
+
     result = state.reception.check_in(
-        body.guest_name,
+        name,
         body.room_type,
         body.floor_preference,
         body.proximity_preference,
@@ -47,7 +57,7 @@ def check_in(
             result["guest"] = asdict(guest_obj)
         db.add(GuestRecord(
             guest_id=result["guest_id"],
-            full_name=body.guest_name,
+            full_name=name,
             room_number=result["room_number"],
             check_in_date=time.time(),
             is_active=True,

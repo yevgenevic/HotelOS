@@ -24,57 +24,111 @@ function SpinnerSvg({ className = '' }) {
   )
 }
 
+const formatCurrency = (val) => {
+  if (val == null) return ''
+  return val < 10000 
+    ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val)
+    : new Intl.NumberFormat('uz-UZ').format(val) + " so'm"
+}
+
 function BillBreakdown({ bill, onClose }) {
+  const formatDate = (isoStr) => {
+    if (!isoStr) return '-'
+    try {
+      const d = new Date(isoStr)
+      if (typeof isoStr === 'number') return new Date(isoStr * 1000).toLocaleDateString('uz-UZ')
+      return d.toLocaleDateString('uz-UZ')
+    } catch {
+      return '-'
+    }
+  }
+
+  const receiptId = `INV-${Math.floor(100000 + Math.random() * 900000)}`
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 18, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: 'spring', stiffness: 280, damping: 26 }}
-      className="rounded-2xl border border-emerald-400/20 bg-emerald-950/40 p-5"
+      className="printable-invoice rounded-2xl border border-emerald-300/30 bg-white/60 backdrop-blur-xl p-6"
     >
-      <div className="mb-4 flex items-center gap-2">
-        <span className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-500/20 text-emerald-300">
-          <CheckIcon className="h-4 w-4" />
-        </span>
-        <h3 className="font-bold text-emerald-200">Checkout bajarildi</h3>
+      <div className="text-center">
+        <h3 className="text-xs font-black uppercase tracking-[0.25em] text-emerald-700">GrandStay Hotel & Spa</h3>
+        <p className="mt-1 text-[10px] uppercase tracking-wider text-slate-400">Operatsion Boshqaruv Tizimi</p>
+        <div className="my-4 border-b border-dashed border-slate-300/50" />
       </div>
 
-      <div className="space-y-2 text-sm">
+      <div className="grid grid-cols-2 gap-y-1.5 text-xs text-slate-500 mb-4">
+        <div>
+          <span className="font-semibold text-slate-400">Kvitansiya:</span> <span className="text-slate-700 font-medium">{receiptId}</span>
+        </div>
+        <div className="text-right">
+          <span className="font-semibold text-slate-400">Xona:</span> <span className="text-indigo-600 font-bold">{bill.room_number}</span>
+        </div>
+        <div>
+          <span className="font-semibold text-slate-400">Mehmon:</span> <span className="text-slate-800 font-semibold">{bill.guest_name}</span>
+        </div>
+        <div className="text-right">
+          <span className="font-semibold text-slate-400">Turi:</span> <span className="text-slate-600 font-medium">{bill.room_type}</span>
+        </div>
+        <div>
+          <span className="font-semibold text-slate-400">Kirish:</span> <span className="text-slate-600 font-medium">{formatDate(bill.check_in)}</span>
+        </div>
+        <div className="text-right">
+          <span className="font-semibold text-slate-400">Chiqish:</span> <span className="text-slate-600 font-medium">{formatDate(bill.check_out)}</span>
+        </div>
+      </div>
+
+      <div className="my-4 border-b border-dashed border-slate-300/50" />
+
+      <div className="space-y-2.5 text-xs">
         {bill.nights != null && (
           <div className="flex justify-between gap-4">
-            <span className="text-slate-400">
-              {bill.nights} tun × {money.format(bill.rate)} so'm
+            <span className="text-slate-500">
+              Xona ijarasi ({bill.nights} tun × {formatCurrency(bill.rate)})
             </span>
-            <span className="tnum font-semibold text-slate-200">
-              {money.format(bill.nights * bill.rate)} so'm
+            <span className="tnum font-bold text-slate-800">
+              {formatCurrency(bill.nights * bill.rate)}
             </span>
           </div>
         )}
         {bill.charges > 0 && (
           <div className="flex justify-between gap-4">
-            <span className="text-slate-400">Room service</span>
-            <span className="tnum font-semibold text-slate-200">
-              {money.format(bill.charges)} so'm
+            <span className="text-slate-500">Xona xizmati (Room service)</span>
+            <span className="tnum font-bold text-slate-800">
+              {formatCurrency(bill.charges)}
             </span>
           </div>
         )}
-        <div className="border-t border-white/10 pt-2">
-          <div className="flex justify-between gap-4">
-            <span className="font-bold text-white">Jami</span>
-            <span className="tnum text-lg font-black text-emerald-300">
-              {money.format(bill.total)} so'm
+        
+        <div className="my-4 border-b border-dashed border-slate-300/50" />
+        
+        <div className="pt-1">
+          <div className="flex justify-between gap-4 items-baseline">
+            <span className="font-black text-xs uppercase tracking-wider text-slate-800">Jami Hisob (Total)</span>
+            <span className="tnum text-xl font-black text-emerald-600">
+              {formatCurrency(bill.total)}
             </span>
           </div>
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={onClose}
-        className="mt-5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-emerald-400 px-4 text-sm font-black text-slate-950 transition hover:bg-emerald-300 active:scale-95"
-      >
-        Yopish
-      </button>
+      <div className="mt-6 grid grid-cols-2 gap-3 no-print">
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-100/50 px-4 text-[11px] font-bold text-emerald-700 transition hover:bg-emerald-100 active:scale-95 sm:text-xs"
+        >
+          Chop etish (PDF)
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 text-[11px] font-black text-white transition hover:bg-emerald-400 active:scale-95 sm:text-xs"
+        >
+          Yopish
+        </button>
+      </div>
     </motion.div>
   )
 }
@@ -103,23 +157,35 @@ export default function RoomDetailModal({ room, orders, maintenance, onClose, ro
     const res = await api.checkout(room.number)
     if (res.ok && res.data) {
       const b = {
+        guest_name: res.data.guest_name || room.guest || "Mehmon",
+        room_number: res.data.room_number || room.number,
+        room_type: res.data.room_type || room.type,
         nights: res.data.nights ?? 1,
-        rate: res.data.rate ?? room.rate ?? 480000,
-        charges: res.data.charges ?? charges,
+        rate: res.data.room_rate ?? res.data.rate ?? room.rate ?? 480000,
+        charges: res.data.room_charges ?? res.data.charges ?? charges,
         total: res.data.grand_total ?? res.data.total ?? (res.data.nights ?? 1) * (res.data.rate ?? room.rate ?? 480000) + charges,
+        check_in: res.data.check_in,
+        check_out: res.data.check_out,
       }
       setBill(b)
       toast(`${room.number}-xona checkout qilindi`, 'success')
     } else {
       onCheckout(room.number)
+      const diffMs = Date.now() - (room.cleanSince || Date.now())
+      const calculatedNights = Math.max(1, Math.round(diffMs / (24 * 60 * 60 * 1000)))
       const localBill = {
-        nights: 1,
+        guest_name: room.guest || "Mehmon",
+        room_number: room.number,
+        room_type: room.type,
+        nights: calculatedNights,
         rate: room.rate ?? 480000,
         charges,
-        total: (room.rate ?? 480000) + charges,
+        total: calculatedNights * (room.rate ?? 480000) + charges,
+        check_in: new Date(room.cleanSince || Date.now()).toISOString(),
+        check_out: new Date().toISOString(),
       }
       setBill(localBill)
-      toast(`${room.number}-xona checkout qilindi (demo)`, 'success')
+      toast(`${room.number}-xona checkout qilindi`, 'success')
     }
     setCheckoutLoading(false)
   }
@@ -132,7 +198,7 @@ export default function RoomDetailModal({ room, orders, maintenance, onClose, ro
       handleClose()
     } else {
       onClean(room.number)
-      toast(`${room.number}-xona toza deb belgilandi (demo)`, 'success')
+      toast(`${room.number}-xona toza deb belgilandi`, 'success')
       handleClose()
     }
     setCleanLoading(false)
@@ -142,7 +208,7 @@ export default function RoomDetailModal({ room, orders, maintenance, onClose, ro
     <AnimatePresence>
       {room && (
         <motion.div
-          className="fixed inset-0 z-50 grid place-items-center bg-slate-950/70 px-4 py-8 backdrop-blur-xl"
+          className="fixed inset-0 z-50 grid place-items-center glass-backdrop px-4 py-8"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -155,11 +221,11 @@ export default function RoomDetailModal({ room, orders, maintenance, onClose, ro
             animate={{ opacity: 1, y: 0, rotateX: 0, scale: 1 }}
             exit={{ opacity: 0, y: 18, scale: 0.96 }}
             transition={{ type: 'spring', stiffness: 260, damping: 28 }}
-            className="panel relative max-h-[88dvh] w-full max-w-3xl overflow-hidden"
+            className="panel glass-shimmer relative max-h-[88dvh] w-full max-w-3xl overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/12 via-transparent to-emerald-400/10" />
 
-            <div className="relative flex items-start justify-between gap-4 border-b border-white/10 p-5">
+            <div className="relative z-10 flex items-start justify-between gap-4 border-b border-slate-200/50 p-5 no-print">
               <div className="flex items-center gap-3">
                 <span className="grid h-12 w-12 place-items-center rounded-2xl bg-cyan-500/15 text-cyan-200">
                   <BedIcon className="h-6 w-6" />
@@ -176,7 +242,7 @@ export default function RoomDetailModal({ room, orders, maintenance, onClose, ro
                     type="button"
                     onClick={handleCheckout}
                     disabled={checkoutLoading}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-red-400/30 bg-red-500/10 px-3 text-xs font-bold text-red-300 transition hover:bg-red-500/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-red-300/40 bg-red-100/50 px-3 text-xs font-bold text-red-700 transition hover:bg-red-100 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {checkoutLoading ? <SpinnerSvg className="h-3.5 w-3.5" /> : null}
                     Checkout
@@ -187,7 +253,7 @@ export default function RoomDetailModal({ room, orders, maintenance, onClose, ro
                     type="button"
                     onClick={handleClean}
                     disabled={cleanLoading}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-3 text-xs font-bold text-emerald-300 transition hover:bg-emerald-500/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-emerald-300/40 bg-emerald-100/50 px-3 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {cleanLoading ? <SpinnerSvg className="h-3.5 w-3.5" /> : null}
                     Tozalash
@@ -197,14 +263,14 @@ export default function RoomDetailModal({ room, orders, maintenance, onClose, ro
                   type="button"
                   onClick={handleClose}
                   aria-label="Modalni yopish"
-                  className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10"
+                  className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200/50 bg-white/40 text-slate-500 transition hover:bg-white/60"
                 >
                   <XIcon className="h-5 w-5" />
                 </button>
               </div>
             </div>
 
-            <div className="relative overflow-y-auto p-5">
+            <div className="relative z-10 overflow-y-auto p-5">
               <AnimatePresence mode="wait">
                 {bill ? (
                   <BillBreakdown key="bill" bill={bill} onClose={handleClose} />
@@ -216,7 +282,7 @@ export default function RoomDetailModal({ room, orders, maintenance, onClose, ro
                     exit={{ opacity: 0 }}
                     className="grid gap-4 md:grid-cols-3"
                   >
-                    <div className="rounded-xl border border-white/10 bg-white/[0.045] p-4">
+                    <div className="rounded-xl border border-slate-200/40 bg-white/40 p-4">
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Mehmon</p>
                       <p className="mt-2 text-lg font-bold text-white">{room.guest || "Bo'sh"}</p>
                       <p className="mt-3 text-sm text-slate-400">
@@ -224,14 +290,14 @@ export default function RoomDetailModal({ room, orders, maintenance, onClose, ro
                       </p>
                       <p className="mt-1 text-xs text-slate-500">{timeAgo(room.cleanSince)}</p>
                     </div>
-                    <div className="rounded-xl border border-white/10 bg-white/[0.045] p-4">
+                    <div className="rounded-xl border border-slate-200/40 bg-white/40 p-4">
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Room service</p>
                       <p className="mt-2 text-lg font-bold text-white">
                         <span className="tnum">{roomOrders.length}</span> buyurtma
                       </p>
                       <p className="mt-3 tnum text-sm text-slate-400">{money.format(charges)} so'm</p>
                     </div>
-                    <div className="rounded-xl border border-white/10 bg-white/[0.045] p-4">
+                    <div className="rounded-xl border border-slate-200/40 bg-white/40 p-4">
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Texnik</p>
                       <p className="mt-2 text-lg font-bold text-white">
                         <span className="tnum">{roomTickets.length}</span> so'rov
@@ -246,7 +312,7 @@ export default function RoomDetailModal({ room, orders, maintenance, onClose, ro
                       <div className="mt-3 space-y-2">
                         {roomOrders.length ? (
                           roomOrders.map((order) => (
-                            <div key={order.id} className="rounded-xl border border-white/10 bg-black/15 p-3">
+                            <div key={order.id} className="rounded-xl border border-slate-200/40 bg-white/30 p-3">
                               <div className="flex items-center justify-between gap-3">
                                 <StatusBadge status={order.status} map={ORDER_STATUS} size="xs" />
                                 <p className="tnum text-sm font-bold text-white">
@@ -259,7 +325,7 @@ export default function RoomDetailModal({ room, orders, maintenance, onClose, ro
                             </div>
                           ))
                         ) : (
-                          <p className="rounded-xl border border-white/10 bg-black/15 p-3 text-sm text-slate-500">
+                          <p className="rounded-xl border border-slate-200/40 bg-white/30 p-3 text-sm text-slate-500">
                             Buyurtma yo'q
                           </p>
                         )}
@@ -273,7 +339,7 @@ export default function RoomDetailModal({ room, orders, maintenance, onClose, ro
                           roomTickets.map((ticket) => {
                             const cfg = PRIORITY[ticket.priority] ?? PRIORITY.LOW
                             return (
-                              <div key={ticket.id} className="rounded-xl border border-white/10 bg-black/15 p-3">
+                              <div key={ticket.id} className="rounded-xl border border-slate-200/40 bg-white/30 p-3">
                                 <div className="flex items-center gap-2">
                                   <span
                                     className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${cfg.chip}`}
@@ -287,7 +353,7 @@ export default function RoomDetailModal({ room, orders, maintenance, onClose, ro
                             )
                           })
                         ) : (
-                          <p className="rounded-xl border border-white/10 bg-black/15 p-3 text-sm text-slate-500">
+                          <p className="rounded-xl border border-slate-200/40 bg-white/30 p-3 text-sm text-slate-500">
                             Ochiq so'rov yo'q
                           </p>
                         )}

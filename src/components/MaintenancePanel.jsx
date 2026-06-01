@@ -54,20 +54,22 @@ const MaintenanceRow = forwardRef(function MaintenanceRow({ ticket, onAssign, on
   }
 
   async function handleResolve() {
+    const notes = prompt("Nosozlikni bartaraf etish hisoboti (ixtiyoriy):")
+    if (notes === null) return
     setResolveLoading(true)
-    const res = await api.resolveIssue(ticket.id)
+    const res = await api.resolveIssue(ticket.id, notes.trim())
     if (res.ok) {
       toast('Ariza hal qilindi', 'success')
     } else {
-      onResolve(ticket.id)
-      toast('Ariza hal qilindi (demo)', 'success')
+      onResolve(ticket.id, notes.trim())
+      toast('Ariza hal qilindi', 'success')
     }
     setResolveLoading(false)
   }
 
   return (
     <motion.li ref={ref} layout variants={item} initial="initial" animate="animate" exit="exit">
-      <div className="glass relative overflow-hidden rounded-xl py-3 pl-4 pr-3">
+      <div className="glass relative overflow-hidden rounded-xl py-3 pl-4 pr-3 glass-shimmer">
         <span className={`absolute inset-y-0 left-0 w-1 ${cfg.accent} opacity-80`} />
         {cfg.pulse && !reduce && (
           <motion.span
@@ -77,7 +79,7 @@ const MaintenanceRow = forwardRef(function MaintenanceRow({ ticket, onAssign, on
           />
         )}
 
-        <div className="flex items-start justify-between gap-3">
+        <div className="relative z-10 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="relative flex items-center">
@@ -111,7 +113,7 @@ const MaintenanceRow = forwardRef(function MaintenanceRow({ ticket, onAssign, on
                 onClick={handleAssign}
                 disabled={ticket.status === 'ASSIGNED' || assignLoading}
                 aria-label={`Xona ${ticket.room} nosozligini biriktirish`}
-                className="inline-flex h-8 items-center gap-1 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-2.5 text-[11px] font-semibold text-cyan-300 transition hover:bg-cyan-500/20 active:scale-95 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-500"
+                className="glass-button inline-flex h-8 items-center gap-1 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-2.5 text-[11px] font-semibold text-cyan-300 transition hover:bg-cyan-500/20 active:scale-95 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-500"
               >
                 {assignLoading ? <SpinnerSvg className="h-3 w-3" /> : null}
                 {ticket.status === 'ASSIGNED' ? 'Olindi' : 'Tayinlash'}
@@ -122,7 +124,7 @@ const MaintenanceRow = forwardRef(function MaintenanceRow({ ticket, onAssign, on
                   onClick={handleResolve}
                   disabled={resolveLoading}
                   aria-label="Hal etildi"
-                  className="inline-flex h-8 items-center gap-1 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-2.5 text-[11px] font-semibold text-emerald-300 transition hover:bg-emerald-500/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="glass-button inline-flex h-8 items-center gap-1 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-2.5 text-[11px] font-semibold text-emerald-300 transition hover:bg-emerald-500/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {resolveLoading ? <SpinnerSvg className="h-3 w-3" /> : <CheckIcon className="h-3 w-3" />}
                   Hal etildi
@@ -162,7 +164,7 @@ function IssueForm({ onSubmit, onCancel }) {
   }
 
   const fieldCls =
-    'w-full rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-orange-300/50 focus:outline-none focus:ring-1 focus:ring-orange-300/30 transition'
+    'glass-input w-full rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-orange-300/50 focus:outline-none focus:ring-1 focus:ring-orange-300/30 transition'
 
   return (
     <motion.div
@@ -170,9 +172,9 @@ function IssueForm({ onSubmit, onCancel }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.18 }}
-      className="glass rounded-xl p-4 mb-3"
+      className="glass rounded-xl p-4 mb-3 relative"
     >
-      <div className="flex items-center justify-between mb-3">
+      <div className="relative z-10 flex items-center justify-between mb-3">
         <p className="text-sm font-bold text-white">Yangi muammo</p>
         <button
           type="button"
@@ -222,7 +224,7 @@ function IssueForm({ onSubmit, onCancel }) {
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-orange-400/30 bg-orange-500/15 text-xs font-bold text-orange-300 transition hover:bg-orange-500/25 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+          className="glass-button inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-orange-400/30 bg-orange-500/15 text-xs font-bold text-orange-300 transition hover:bg-orange-500/25 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? <SpinnerSvg className="h-3.5 w-3.5" /> : <PlusIcon className="h-3.5 w-3.5" />}
           Muammo qo'shish
@@ -235,6 +237,7 @@ function IssueForm({ onSubmit, onCancel }) {
 export default function MaintenancePanel({ maintenance, onAssign, onResolve, onAddIssue, role }) {
   const toast = useToast()
   const [showForm, setShowForm] = useState(false)
+  const [filterPriority, setFilterPriority] = useState('ALL')
 
   const canAdd = role === 'technician' || role === 'admin'
   const canAct = role === 'technician' || role === 'admin'
@@ -250,6 +253,16 @@ export default function MaintenancePanel({ maintenance, onAssign, onResolve, onA
     [maintenance],
   )
 
+  const filtered = useMemo(() => {
+    if (filterPriority === 'ALL') return sorted
+    return sorted.filter((t) => {
+      if (filterPriority === 'NORMAL') {
+        return t.priority === 'NORMAL' || t.priority === 'MEDIUM'
+      }
+      return t.priority === filterPriority
+    })
+  }, [sorted, filterPriority])
+
   const criticalCount = sorted.filter((t) => t.priority === 'CRITICAL').length
 
   async function handleAddIssue(room, priority, description) {
@@ -262,14 +275,14 @@ export default function MaintenancePanel({ maintenance, onAssign, onResolve, onA
       toast(`Xona ${room} uchun muammo qo'shildi`, 'success')
     } else {
       onAddIssue(room, description, priority)
-      toast(`Xona ${room} uchun muammo qo'shildi (demo)`, 'success')
+      toast(`Xona ${room} uchun muammo qo'shildi`, 'success')
     }
     setShowForm(false)
   }
 
   return (
-    <section className="panel flex max-h-[30rem] flex-col p-5">
-      <div className="flex items-center justify-between gap-2.5">
+    <section className="panel glass-shimmer flex max-h-[30rem] flex-col p-5">
+      <div className="relative z-10 flex items-center justify-between gap-2.5">
         <div className="flex items-center gap-2.5">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-orange-500/15 text-orange-300">
             <WrenchIcon className="h-5 w-5" />
@@ -291,7 +304,7 @@ export default function MaintenancePanel({ maintenance, onAssign, onResolve, onA
           <button
             type="button"
             onClick={() => setShowForm((v) => !v)}
-            className={`inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition active:scale-95 ${
+            className={`glass-button inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition active:scale-95 ${
               showForm
                 ? 'border-slate-400/20 bg-white/5 text-slate-400 hover:bg-white/10'
                 : 'border-orange-400/30 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20'
@@ -303,14 +316,37 @@ export default function MaintenancePanel({ maintenance, onAssign, onResolve, onA
         )}
       </div>
 
-      <motion.div layout className="scroll-area mask-fade-y mt-4 flex-1 overflow-y-auto pr-1">
+      <div className="flex flex-wrap gap-1.5 mt-3 py-0.5 border-t border-white/5 pt-3">
+        {[
+          { id: 'ALL', label: 'Barchasi' },
+          { id: 'CRITICAL', label: 'Kritik', activeCls: 'border-red-400/40 bg-red-500/15 text-red-200' },
+          { id: 'HIGH', label: 'Yuqori', activeCls: 'border-orange-400/40 bg-orange-500/15 text-orange-200' },
+          { id: 'NORMAL', label: "O'rtacha", activeCls: 'border-yellow-400/40 bg-yellow-500/15 text-yellow-200' },
+          { id: 'LOW', label: 'Past', activeCls: 'border-blue-400/40 bg-blue-500/15 text-blue-200' },
+        ].map((btn) => (
+          <button
+            key={btn.id}
+            type="button"
+            onClick={() => setFilterPriority(btn.id)}
+            className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition active:scale-95 border ${
+              filterPriority === btn.id
+                ? btn.activeCls || 'border-cyan-400/40 bg-cyan-500/15 text-cyan-200'
+                : 'border-white/5 bg-white/5 text-slate-400 hover:text-slate-300'
+            }`}
+          >
+            {btn.label}
+          </button>
+        ))}
+      </div>
+
+      <motion.div layout className="scroll-area mask-fade-y mt-3 flex-1 overflow-y-auto pr-1">
         <AnimatePresence mode="popLayout" initial={false}>
           {showForm && (
             <IssueForm key="form" onSubmit={handleAddIssue} onCancel={() => setShowForm(false)} />
           )}
         </AnimatePresence>
 
-        {sorted.length === 0 && !showForm ? (
+        {filtered.length === 0 && !showForm ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 py-10 text-center">
             <span className="grid h-10 w-10 place-items-center rounded-full bg-emerald-500/15 text-emerald-300">
               <CheckIcon className="h-5 w-5" />
@@ -320,7 +356,7 @@ export default function MaintenancePanel({ maintenance, onAssign, onResolve, onA
         ) : (
           <motion.ul layout className="flex flex-col gap-2.5">
             <AnimatePresence mode="popLayout" initial={false}>
-              {sorted.map((ticket) => (
+              {filtered.map((ticket) => (
                 <MaintenanceRow
                   key={ticket.id}
                   ticket={ticket}

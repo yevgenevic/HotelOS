@@ -47,15 +47,15 @@ const HousekeeperCard = forwardRef(function HousekeeperCard({ housekeeper }, ref
           : {}
       }
       transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-      className={`glass rounded-xl p-3 ${busy ? 'border-amber-400/25' : 'border-emerald-400/20'}`}
+      className={`glass glass-shimmer rounded-xl p-3 relative ${busy ? 'border-amber-400/25' : 'border-emerald-400/20'}`}
     >
-      <div className="flex items-center gap-2">
+      <div className="relative z-10 flex items-center gap-2">
         <span
           className={`h-2 w-2 rounded-full ${busy ? 'bg-amber-400' : 'bg-emerald-400'} ${!busy && !reduce ? 'animate-pulse' : ''}`}
         />
         <span className="truncate text-xs font-semibold text-slate-200">{housekeeper.name}</span>
       </div>
-      <p className={`mt-1 text-[11px] font-medium ${busy ? 'text-amber-300' : 'text-emerald-400'}`}>
+      <p className={`relative z-10 mt-1 text-[11px] font-medium ${busy ? 'text-amber-300' : 'text-emerald-400'}`}>
         {busy ? `${housekeeper.currentRoom}-xona` : "Bo'sh"}
       </p>
     </motion.div>
@@ -116,7 +116,7 @@ export default function HousekeepingPanel({ role, rooms }) {
       toast('Tozalash boshlandi', 'success')
       fetchQueue()
     } else {
-      toast("Tozalash boshlandi (demo)", 'success')
+      toast("Tozalash boshlandi", 'success')
     }
     setStartLoading(false)
   }
@@ -124,8 +124,8 @@ export default function HousekeepingPanel({ role, rooms }) {
   const canStart = role === 'housekeeper' || role === 'admin'
 
   return (
-    <section className="panel flex flex-col p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <section className="panel glass-shimmer flex flex-col p-5">
+      <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-teal-500/15 text-teal-300">
             <HomeIcon className="h-5 w-5" />
@@ -144,7 +144,7 @@ export default function HousekeepingPanel({ role, rooms }) {
             type="button"
             onClick={handleStart}
             disabled={startLoading || queueSize === 0}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-teal-400/30 bg-teal-500/10 px-3 text-xs font-semibold text-teal-300 transition hover:bg-teal-500/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+            className="glass-button inline-flex h-9 items-center gap-1.5 rounded-lg border border-teal-400/30 bg-teal-500/10 px-3 text-xs font-semibold text-teal-300 transition hover:bg-teal-500/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {startLoading ? (
               <SpinnerSvg className="h-3.5 w-3.5" />

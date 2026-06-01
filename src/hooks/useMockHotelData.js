@@ -108,7 +108,7 @@ function seed() {
     rooms,
     orders,
     maintenance,
-    notice: 'Demo stream tayyor. Scenario panel orqali TS-01..TS-08 ni ishga tushiring.',
+    notice: 'Tizim tayyor. Xonalar, buyurtmalar va texnik xizmatlar real-time kuzatilmoqda.',
     activity: [
       act('system', 'Boshqaruv paneli ishga tushdi', Date.now() - 4000),
       act('room', '305-xona tozalandi', Date.now() - 32000),
@@ -517,6 +517,14 @@ export function useMockHotelData() {
   const manualRoomsRef = useRef(new Set())
   stateRef.current = state
 
+  const [checkouts, setCheckouts] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('hotelos-checkout-archive') || '[]')
+    } catch {
+      return []
+    }
+  })
+
   useEffect(() => {
     if (!wsUrl) return undefined
     const socket = new WebSocket(wsUrl)
@@ -559,8 +567,8 @@ export function useMockHotelData() {
     [sendOrDispatch],
   )
 
-  const resolveTicket = useCallback((id) => {
-    sendOrDispatch({ type: 'maintenance:resolve', payload: { id } })
+  const resolveTicket = useCallback((id, notes = '') => {
+    sendOrDispatch({ type: 'maintenance:resolve', payload: { id, notes } })
   }, [sendOrDispatch])
 
   const checkinGuest = useCallback((params) => {
@@ -579,8 +587,48 @@ export function useMockHotelData() {
 
   const checkoutGuest = useCallback((roomNumber) => {
     manualRoomsRef.current.delete(String(roomNumber))
+    // Get room details before dispatching checkout to capture guest name and orders
+    const room = stateRef.current.rooms.find((r) => r.number === String(roomNumber))
+    if (room && room.guest) {
+      const roomNum = String(roomNumber)
+      const charges = stateRef.current.orders.filter((o) => o.room === roomNum).reduce((s, o) => s + o.total, 0)
+      const bill = (room.rate ?? 640000) + charges
+      const record = {
+        id: `arc-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        roomNumber: roomNum,
+        roomType: room.type,
+        roomRate: room.rate ?? 640000,
+        guestName: room.guest,
+        checkInTime: room.cleanSince || (Date.now() - 24 * 60 * 60 * 1000),
+        checkOutTime: Date.now(),
+        orders: stateRef.current.orders.filter((o) => o.room === roomNum).map(o => ({
+          id: o.id,
+          items: o.items,
+          total: o.total,
+          status: o.status
+        })),
+        totalBill: bill
+      }
+      try {
+        const archive = JSON.parse(localStorage.getItem('hotelos-checkout-archive') || '[]')
+        archive.unshift(record)
+        localStorage.setItem('hotelos-checkout-archive', JSON.stringify(archive.slice(0, 100)))
+        setCheckouts(archive.slice(0, 100))
+      } catch (e) {
+        console.error(e)
+      }
+    }
     sendOrDispatch({ type: 'guest:checkout', payload: { roomNumber } })
   }, [sendOrDispatch])
+
+  const clearCheckoutArchive = useCallback(() => {
+    try {
+      localStorage.setItem('hotelos-checkout-archive', '[]')
+      setCheckouts([])
+    } catch (e) {
+      console.error(e)
+    }
+  }, [])
 
   const cleanRoom = useCallback((roomNumber) => {
     const room = stateRef.current.rooms.find((r) => r.number === String(roomNumber))
@@ -591,7 +639,7 @@ export function useMockHotelData() {
     })
     sendOrDispatch({
       type: 'activity',
-      payload: act('room', `${room.number}-xona tayyor (manual)`)
+      payload: act('room', `${room.number}-xona tayyor`)
     })
   }, [sendOrDispatch])
 
@@ -613,6 +661,8 @@ export function useMockHotelData() {
     ...state,
     status,
     mode: WS_URL ? 'websocket' : 'mock',
+    checkouts,
+    clearCheckoutArchive,
     assignTicket,
     resolveTicket,
     checkinGuest,

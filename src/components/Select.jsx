@@ -116,7 +116,7 @@ export default function Select({ value, onChange, options, placeholder = 'Tanlan
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={toggleOpen}
-        className="flex h-10 w-full min-w-0 items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-3 text-sm transition hover:bg-white/[0.09] focus:border-cyan-300/50 focus:outline-none focus:ring-1 focus:ring-cyan-300/30"
+        className="glass-input flex h-10 w-full min-w-0 items-center justify-between gap-2 rounded-xl px-3 text-sm transition hover:bg-white/[0.09] focus:outline-none"
       >
         <span className={`min-w-0 truncate text-left ${selected ? 'text-white' : 'text-slate-500'}`}>
           {selected?.label ?? placeholder}
@@ -141,7 +141,7 @@ export default function Select({ value, onChange, options, placeholder = 'Tanlan
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.14, ease: 'easeOut' }}
               style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 9980 }}
-              className="scroll-area max-h-56 overflow-y-auto rounded-xl border border-white/15 bg-gray-900 py-1 shadow-[0_16px_40px_rgba(0,0,0,0.55)]"
+              className="glass scroll-area max-h-56 overflow-y-auto rounded-xl border border-white/15 py-1 shadow-[0_16px_40px_rgba(0,0,0,0.55)]"
             >
               {options.map((opt, i) => (
                 <li
@@ -152,10 +152,10 @@ export default function Select({ value, onChange, options, placeholder = 'Tanlan
                   onMouseEnter={() => setFocusedIdx(i)}
                   className={`flex cursor-pointer select-none items-center gap-2 px-3 py-2 text-sm transition-colors ${
                     opt.value === value
-                      ? 'bg-cyan-500/20 text-cyan-200'
+                      ? 'bg-cyan-500/20 text-cyan-200 backdrop-blur-sm'
                       : i === focusedIdx
-                      ? 'bg-white/[0.08] text-slate-100'
-                      : 'text-slate-300 hover:bg-white/[0.05]'
+                      ? 'bg-white/[0.10] text-slate-100 backdrop-blur-sm'
+                      : 'text-slate-300 hover:bg-white/[0.07] hover:backdrop-blur-sm'
                   }`}
                 >
                   <span
