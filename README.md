@@ -1,184 +1,147 @@
-# HotelOS — Real Vaqtli Mehmonxona Boshqaruv Tizimi
+# HotelOS — Real-Time Hotel Management System
 
-GrandStay mehmonxonasi uchun operatsion boshqaruv tizimi. To'rtta bo'limni
-(Qabul, Tozalash, Xona xizmati, Texnik xizmat) bitta platformada birlashtiradi:
-mikroservislar Redis Pub/Sub orqali gaplashadi, operatsiyalar paneli esa
-WebSocket orqali jonli yangilanadi.
+**BTEC Unit 4: Programming | Assignment: HotelOS**
 
-**Stack:** Backend — Python (Redis Pub/Sub + `websockets`) ·
-Frontend — React + Vite + Tailwind + Framer Motion.
+A real-time hotel operations platform built with a microservices architecture,
+Redis Pub/Sub message broker, and a WebSocket-powered live dashboard.
 
 ---
 
-## Ikki ishlash rejimi
+## Architecture Overview
 
-Panel ikki rejimda ishlaydi va backend uzilsa avtomatik mock rejimga qaytadi:
-
-| Rejim | Qachon | Ma'lumot manbai |
-| --- | --- | --- |
-| **Backend (to'liq tizim)** | `.env` da `VITE_WS_URL` o'rnatilgan va backend ishlayotganda | Haqiqiy mikroservislar + Redis (`ws://localhost:8765`) |
-| **Mock (mustaqil)** | `.env` yo'q yoki backend ishlamayotganda | Brauzer ichidagi simulyator |
-
----
-
-## Old shartlar
-
-* **Python 3.10+**
-* **Redis** — `localhost:6379` da ishlab turishi kerak (Pub/Sub uchun)
-* **Node.js 18+** (frontend uchun)
-
-Redis ishga tushirish (Windows, agar o'rnatilgan bo'lsa):
-
-```bash
-redis-server
+```
+┌─────────────────────────────────────────────────────────┐
+│                    HotelOS System                        │
+│                                                          │
+│  ┌──────────────┐   ┌─────────────────────────────────┐ │
+│  │   Frontend   │   │         Python Backend           │ │
+│  │  React + Vite│◄──│  ┌──────────┐ ┌──────────────┐  │ │
+│  │  WebSocket   │   │  │Reception │ │  Housekeeping │  │ │
+│  │  Dashboard   │   │  │ Service  │ │   Service     │  │ │
+│  └──────────────┘   │  └────┬─────┘ └──────┬───────┘  │ │
+│                     │       │               │           │ │
+│                     │  ┌────▼───────────────▼───────┐  │ │
+│                     │  │    Redis Pub/Sub Broker     │  │ │
+│                     │  └────┬───────────────┬───────┘  │ │
+│                     │       │               │           │ │
+│                     │  ┌────▼─────┐ ┌──────▼───────┐   │ │
+│                     │  │  Room    │ │ Maintenance  │   │ │
+│                     │  │ Service  │ │   Service    │   │ │
+│                     │  └──────────┘ └──────────────┘   │ │
+│                     │                                   │ │
+│                     │  ┌─────────────────────────────┐  │ │
+│                     │  │  WebSocket Dashboard Server  │  │ │
+│                     │  │     ws://localhost:8765      │  │ │
+│                     │  └─────────────────────────────┘  │ │
+│                     └─────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
 ```
 
+## Tech Stack
+
+| Layer            | Technology              | Reason                                   |
+|------------------|-------------------------|------------------------------------------|
+| Backend language | Python 3.10+            | Clear OOP, readable, rich stdlib         |
+| Message broker   | Redis Pub/Sub           | Zero-config, low latency, reliable fanout|
+| Real-time push   | WebSocket (websockets)  | Native browser support, bidirectional    |
+| REST API         | FastAPI + SQLAlchemy    | Auto-docs, JWT auth, async-ready         |
+| Frontend         | React 18 + Vite + Tailwind | Component model maps to dashboard panels |
+| Auth             | JWT + bcrypt            | Stateless tokens, safe password hashing  |
+
 ---
 
-## Ishga tushirish (to'liq tizim)
+## Quick Start
 
-Ikkita terminal kerak. Redis ishlab turgani tekshiring.
+### Prerequisites
+- Python 3.10+
+- Node.js 18+ (frontend only)
+- Redis running on `localhost:6379`
 
-```powershell
-# 1-terminal — Backend (Python + Redis)
+### Run the demo (8 test scenarios, no frontend needed)
+
+```bash
 cd python
 pip install -r requirements.txt
-python run_dashboard.py        # dashboard (ws://:8765) + jonli hodisa generatori
+python run_demo.py
+```
 
-# 2-terminal — Frontend
+### Run the live dashboard (backend + frontend)
+
+**Terminal 1 — Backend WebSocket server:**
+```bash
+cd python
+pip install -r requirements.txt
+python dashboard/server.py
+```
+
+**Terminal 2 — Frontend dev server:**
+```bash
 npm install
 npm run dev
 ```
 
-> **Eslatma:** Windows PowerShell 5.1 da `&&` ishlamaydi — har bir buyruqni
-> alohida qatorda yozing (yuqoridagi kabi) yoki `;` bilan ajrating.
+Open `http://localhost:5173` → enter token `hotel2024` → live dashboard.
 
-Brauzer ochiladi: **http://localhost:5173** · Login token: ixtiyoriy (≥4 belgi).
-
-> `.env` fayli frontendni backendga ulaydi (`VITE_WS_URL=ws://localhost:8765`).
-> Backend ishlamasa, panel xavfsiz tarzda mock rejimga qaytadi (o'ng yuqorida
-> "Demo live" ko'rinadi).
-
-### Faqat frontend (mock rejim)
-
-```bash
-npm install && npm run dev
-```
-
-Backend yoki Redis kerak emas — panel darhol mock ma'lumot bilan ishlaydi.
-
----
-
-## Test stsenariylari (TS-01 … TS-08)
-
-Redis ishlab turganda:
+### Run the REST API
 
 ```bash
 cd python
-python run_demo.py          # 8/8 PASS — TS-01..TS-08 Redis orqali end-to-end
-python smoke_dashboard.py   # dashboard WebSocket protokolini tekshiradi
+uvicorn api.main:app --reload
 ```
 
-`run_demo.py` 8 ta stsenariyni haqiqiy mikroservislar va Redis Pub/Sub orqali
-sinaydi (check-in, hisob-kitob, tozalash, buyurtma, kritik nosozlik, bir vaqtli
-check-in, xona yo'qligi, yaroqsiz kiritish).
+API docs at `http://localhost:8000/docs`
 
 ---
 
-## Buyruqlar
+## Test Scenarios (TS-01 → TS-08)
 
-| Buyruq | Vazifasi |
-| --- | --- |
-| `cd python && python run_dashboard.py` | Dashboard WS server + jonli hodisa oqimi |
-| `cd python && python run_demo.py` | TS-01..TS-08 stsenariy testi (Redis kerak) |
-| `cd python && python smoke_dashboard.py` | Dashboard protokol smoke testi |
-| `npm run dev` | Vite dev server (frontend) |
-| `npm run build` | Production build (`dist/`) |
-
----
-
-## Panel (4 ta ko'rinish)
-
-1. **Xonalar** — kursorga ergashuvchi **3D tilt** kartalar, status rangi bo'yicha
-   yorug'lik, qavat/qidiruv filtri. `CLEAN`=yashil · `DIRTY`=qizil ·
-   `CLEANING`=sariq · `OCCUPIED`=ko'k · `MAINTENANCE`=kulrang.
-2. **Room Service** — yangi buyurtma tepadan slide-in; status crossfade.
-3. **Texnik xizmat** — prioritet bo'yicha tartiblangan; `CRITICAL` pulsing.
-4. **Faoliyat tarixi** — oxirgi 20 hodisa; `mode="popLayout"` bilan oqim.
-
-Yuqorida: KPI satri, jonli ulanish indikatori, login, kun/tun rejimi.
-
-> **Eslatma:** Panel'dagi TS-01..TS-08 tugmalari brauzer ichida lokal demo
-> sifatida ishlaydi (dashboard server faqat broadcast qiladi, buyruq qabul
-> qilmaydi). Backend stsenariylarini tekshirish uchun `python run_demo.py`
-> ishlating.
+| ID    | Scenario                                      | Expected behaviour                                  |
+|-------|-----------------------------------------------|-----------------------------------------------------|
+| TS-01 | Floor-2 DOUBLE check-in                       | Assigns longest-clean Double on floor 2             |
+| TS-02 | Check-out room 102 + bill calculation         | Bill = nights × rate + charges; room → DIRTY        |
+| TS-03 | Housekeeping cleans room 102                  | Room → CLEANING → CLEAN; dashboard updates via WS   |
+| TS-04 | Room 101 orders 2×coffee + 1×sandwich         | Order pipeline; charge added to bill after delivery |
+| TS-05 | CRITICAL maintenance for room 105             | Pushed to front of priority queue; tech assigned    |
+| TS-06 | Two simultaneous SUITE check-ins              | No double-booking; allocation_lock serialises       |
+| TS-07 | All SUITEs occupied — third guest requests    | Clean "No rooms available" error, no crash          |
+| TS-08 | Invalid room type "PENTHOUSE"                 | Validation error; system stays healthy              |
 
 ---
 
-## Arxitektura
+## Broker Channels
 
-```
-                         ┌──────────────────────────────┐
-   Brauzer paneli  ◄────►│ dashboard/server.py  (ws:8765)│  WebSocket fan-out
-                         └───────────────┬───────────────┘
-                                         │ psubscribe "*"
-                         ┌───────────────▼───────────────┐
-                         │     Redis Pub/Sub  (:6379)     │
-                         └──┬────────┬────────┬────────┬──┘
-                  publish/subscribe (servislar bir-birini ko'rmaydi)
-        ┌──────────────┬──┴───┬───────┴──────┬─────────┴────┐
-   ┌────▼─────┐  ┌─────▼────┐  ┌────────▼─────┐  ┌──────────▼────┐
-   │reception │  │housekeep.│  │ room_service │  │  maintenance  │
-   └──────────┘  └──────────┘  └──────────────┘  └───────────────┘
-```
-
-Backend ichki tafsilotlari, kanallar (channels) ro'yxati va Redis sozlamalari:
-[`python/README.md`](python/README.md).
+| Channel                  | Publisher          | Subscriber(s)                     |
+|--------------------------|--------------------|-----------------------------------|
+| `reception.check_in`     | ReceptionService   | DashboardServer                   |
+| `room.vacated`           | ReceptionService   | HousekeepingService, Dashboard    |
+| `room.cleaning_started`  | HousekeepingService| DashboardServer                   |
+| `room.cleaned`           | HousekeepingService| ReceptionService, Dashboard       |
+| `order.placed`           | RoomServiceService | DashboardServer                   |
+| `order.status_update`    | RoomServiceService | DashboardServer                   |
+| `room.charge_added`      | RoomServiceService | ReceptionService, Dashboard       |
+| `maintenance.request`    | MaintenanceService | DashboardServer                   |
+| `maintenance.assigned`   | MaintenanceService | DashboardServer                   |
+| `maintenance.resolved`   | MaintenanceService | DashboardServer                   |
+| `dashboard.full_state`   | DashboardServer    | WebSocket clients (on connect)    |
 
 ---
 
-## Git tarixi (`git log --oneline`)
+## Git Log
 
 ```
-docs: project + backend READMEs, env config, assignment brief
-feat(frontend): live data hook (WS adapter + mock fallback)
-feat(frontend): panel UI components with 3D tilt room cards
-test(backend): TS-01..TS-08 scenario demo + dashboard smoke
-feat(backend): WebSocket dashboard fan-out + run_dashboard
-feat(backend): maintenance service (priority queue)
-feat(backend): room service (async order pipeline)
-feat(backend): housekeeping service (cleaning queue)
-feat(backend): reception service (check-in, check-out, billing)
-feat(backend): domain models (Hotel, Room, Guest, enums)
-feat(backend): add Redis Pub/Sub message broker
-chore: scaffold Vite + React + Tailwind project
-```
-
----
-
-## Loyiha tuzilmasi
-
-```
-HotelOS/
-├── .env / .env.example          # frontend -> backend ulanishi (VITE_WS_URL)
-├── index.html, package.json, vite/tailwind/postcss config
-├── python/                      # BACKEND (Python + Redis Pub/Sub)
-│   ├── run_dashboard.py         # dashboard WS + jonli hodisa generatori
-│   ├── run_demo.py              # TS-01..TS-08 stsenariy testi
-│   ├── smoke_dashboard.py       # dashboard protokol smoke testi
-│   ├── broker.py                # Redis Pub/Sub wrapper
-│   ├── models.py                # OOP: entity'lar, Hotel konteyneri
-│   ├── reception.py             # Qabul: check-in/out, hisob-kitob
-│   ├── housekeeping.py          # Tozalash navbati + 3 tozalovchi
-│   ├── room_service.py          # Menyu + async buyurtma oqimi
-│   ├── maintenance.py           # Ustuvorlik navbati + 2 texnik
-│   ├── dashboard/server.py      # WebSocket fan-out (ws://:8765)
-│   ├── requirements.txt
-│   └── README.md                # backend arxitekturasi + kanallar
-└── src/                         # FRONTEND (React)
-    ├── App.jsx, main.jsx, index.css
-    ├── hooks/useMockHotelData.js  # WS ulanish + backend adapter + mock fallback
-    ├── lib/  (constants, icons)
-    └── components/  (RoomCard, RoomGrid, OrderFeed, MaintenancePanel,
-                      ActivityLog, ScenarioPanel, RoomDetailModal, …)
+e2c0c25 Project update
+ed74575 first commit
+9d79f62 docs: embed git log --oneline in README
+10bf05d docs: project + backend READMEs, env config, assignment brief
+6c32a3b feat(frontend): live data hook (WS adapter + mock fallback)
+288f12e feat(frontend): panel UI components with 3D tilt room cards
+64b6780 test(backend): TS-01..TS-08 scenario demo + dashboard smoke
+52c2c67 feat(backend): WebSocket dashboard fan-out + run_dashboard
+f60249c feat(backend): maintenance service (priority queue)
+e9e7ae0 feat(backend): room service (async order pipeline)
+69a4e33 feat(backend): housekeeping service (cleaning queue)
+ac8332b feat(backend): reception service (check-in, check-out, billing)
+c3f16c4 feat(backend): add domain models (Hotel, Room, Guest, enums)
+9cdce23 feat(backend): add Redis Pub/Sub message broker
+364a064 chore: scaffold Vite + React + Tailwind project
 ```

@@ -1,36 +1,49 @@
-# dependencies
+# ── Node / frontend ──────────────────────────────────────────────────────────
 node_modules
 .pnp
 .pnp.js
-
-# build output
 dist
 dist-ssr
 *.local
 
-# logs
+# ── Logs ─────────────────────────────────────────────────────────────────────
 logs
 *.log
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
 pnpm-debug.log*
 
-# editor / os
+# ── Editor / OS ──────────────────────────────────────────────────────────────
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
 Thumbs.db
-.claude/settings.local.json
+.claude/
+.claude-flow/
 
-# scratch
+# ── Scratch / temp ───────────────────────────────────────────────────────────
 _*.txt
 _*.log
+_dash
 
-# python (backend)
+# ── Python (backend) ─────────────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
+*.pyo
 python/venv/
 python/.venv/
+.venv/
+
+# ── Database files (SQLite — regenerated at startup) ─────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ── Environment secrets ───────────────────────────────────────────────────────
 .env.local
+# NOTE: .env is committed because it only contains non-secret demo values
+#       (ws://localhost:8765, hotel2024). Real deployments must rotate these.
+
+# ── MCP config ────────────────────────────────────────────────────────────────
+.mcp.json
