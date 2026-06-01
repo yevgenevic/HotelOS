@@ -1,63 +1,81 @@
 # HotelOS — Real-Time Hotel Management System
 
-**BTEC Unit 4: Programming | Assignment: HotelOS**
+HotelOS is a real-time, comprehensive hotel operations platform built with a microservices-inspired architecture, Redis Pub/Sub message broker, and a WebSocket-powered live React dashboard. It enables real-time synchronization of operations across various hotel departments including Reception, Housekeeping, Room Service, and Maintenance.
 
-A real-time hotel operations platform built with a microservices architecture,
-Redis Pub/Sub message broker, and a WebSocket-powered live dashboard.
+This project was originally built for **BTEC Unit 4: Programming | Assignment**.
+
+![HotelOS Dashboard](https://img.shields.io/badge/Status-Active-success)
+![Python Backend](https://img.shields.io/badge/Backend-Python%203.10%2B-blue)
+![Frontend](https://img.shields.io/badge/Frontend-React%2018%20%7C%20Vite-cyan)
+![Broker](https://img.shields.io/badge/Message%20Broker-Redis%20Pub%2FSub-red)
 
 ---
 
-## Architecture Overview
+## 🌟 Features
 
-```
+- **Reception Service:** Handle check-ins, check-outs, and intelligent room allocations. Calculates final billing with room charges automatically.
+- **Housekeeping Service:** Tracks dirty rooms, assigns housekeepers via a cleaning queue, and alerts reception when a room is ready.
+- **Room Service:** Asynchronous order pipeline. Guests can order food/drinks, and room service can update order statuses. Charges are automatically posted to the guest's room bill.
+- **Maintenance Service:** Priority queue-based system for handling room issues (e.g., critical AC failure vs standard lightbulb change). Dispatches available technicians efficiently.
+- **Real-Time Dashboard:** A responsive, interactive React front-end dashboard that connects to a WebSocket server to reflect real-time updates as events happen across the hotel.
+- **Role-Based Views:** Dashboard interface changes dynamically based on the role (Receptionist, Housekeeper, Room Service, Technician, Admin).
+
+---
+
+## 🏗️ Architecture Overview
+
+HotelOS employs a decoupled architecture where backend services communicate via Redis Pub/Sub, ensuring that components remain independent and scalable.
+
+```text
 ┌─────────────────────────────────────────────────────────┐
-│                    HotelOS System                        │
-│                                                          │
+│                    HotelOS System                       │
+│                                                         │
 │  ┌──────────────┐   ┌─────────────────────────────────┐ │
-│  │   Frontend   │   │         Python Backend           │ │
+│  │   Frontend   │   │         Python Backend          │ │
 │  │  React + Vite│◄──│  ┌──────────┐ ┌──────────────┐  │ │
-│  │  WebSocket   │   │  │Reception │ │  Housekeeping │  │ │
-│  │  Dashboard   │   │  │ Service  │ │   Service     │  │ │
+│  │  WebSocket   │   │  │Reception │ │ Housekeeping │  │ │
+│  │  Dashboard   │   │  │ Service  │ │   Service    │  │ │
 │  └──────────────┘   │  └────┬─────┘ └──────┬───────┘  │ │
-│                     │       │               │           │ │
-│                     │  ┌────▼───────────────▼───────┐  │ │
-│                     │  │    Redis Pub/Sub Broker     │  │ │
-│                     │  └────┬───────────────┬───────┘  │ │
-│                     │       │               │           │ │
-│                     │  ┌────▼─────┐ ┌──────▼───────┐   │ │
-│                     │  │  Room    │ │ Maintenance  │   │ │
-│                     │  │ Service  │ │   Service    │   │ │
-│                     │  └──────────┘ └──────────────┘   │ │
-│                     │                                   │ │
-│                     │  ┌─────────────────────────────┐  │ │
-│                     │  │  WebSocket Dashboard Server  │  │ │
-│                     │  │     ws://localhost:8765      │  │ │
-│                     │  └─────────────────────────────┘  │ │
+│                     │       │              │          │ │
+│                     │  ┌────▼──────────────▼───────┐  │ │
+│                     │  │   Redis Pub/Sub Broker    │  │ │
+│                     │  └────┬──────────────┬───────┘  │ │
+│                     │       │              │          │ │
+│                     │  ┌────▼─────┐ ┌──────▼───────┐  │ │
+│                     │  │   Room   │ │ Maintenance  │  │ │
+│                     │  │ Service  │ │   Service    │  │ │
+│                     │  └──────────┘ └──────────────┘  │ │
+│                     │                                 │ │
+│                     │  ┌─────────────────────────────┐│ │
+│                     │  │ WebSocket Dashboard Server  ││ │
+│                     │  │     ws://localhost:8765     ││ │
+│                     │  └─────────────────────────────┘│ │
 │                     └─────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────┘
 ```
 
-## Tech Stack
+### 💻 Tech Stack
 
-| Layer            | Technology              | Reason                                   |
-|------------------|-------------------------|------------------------------------------|
-| Backend language | Python 3.10+            | Clear OOP, readable, rich stdlib         |
-| Message broker   | Redis Pub/Sub           | Zero-config, low latency, reliable fanout|
-| Real-time push   | WebSocket (websockets)  | Native browser support, bidirectional    |
-| REST API         | FastAPI + SQLAlchemy    | Auto-docs, JWT auth, async-ready         |
-| Frontend         | React 18 + Vite + Tailwind | Component model maps to dashboard panels |
-| Auth             | JWT + bcrypt            | Stateless tokens, safe password hashing  |
+| Layer            | Technology                 | Reason                                       |
+|------------------|----------------------------|----------------------------------------------|
+| **Backend**      | Python 3.10+               | Clear OOP, readable, robust async libraries  |
+| **Broker**       | Redis Pub/Sub              | Zero-config, low latency, reliable fan-out   |
+| **Real-time Push**| WebSocket (`websockets`)  | Native browser support, bidirectional push   |
+| **API**          | FastAPI + SQLAlchemy       | Auto-docs, JWT auth, async-ready             |
+| **Frontend**     | React 18 + Vite + Tailwind | Performant component model mapping to panels |
+| **Auth**         | JWT + bcrypt               | Stateless tokens, safe password hashing      |
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.10+
-- Node.js 18+ (frontend only)
-- Redis running on `localhost:6379`
+- **Python:** 3.10+
+- **Node.js:** 18+ (for frontend)
+- **Redis:** Running locally on `localhost:6379` (e.g., via Docker: `docker run -p 6379:6379 -d redis`)
 
-### Run the demo (8 test scenarios, no frontend needed)
+### Option 1: Run the Backend Demo (No Frontend Required)
+Run the automated test scenarios to see the backend systems working together in the terminal.
 
 ```bash
 cd python
@@ -65,50 +83,56 @@ pip install -r requirements.txt
 python run_demo.py
 ```
 
-### Run the live dashboard (backend + frontend)
+### Option 2: Run the Live Dashboard
+Launch the full stack with real-time sync.
 
-**Terminal 1 — Backend WebSocket server:**
+**1. Start the Backend WebSocket server:**
 ```bash
 cd python
 pip install -r requirements.txt
 python dashboard/server.py
 ```
 
-**Terminal 2 — Frontend dev server:**
+**2. Start the Frontend dev server:**
 ```bash
+# In a new terminal tab at the project root
 npm install
 npm run dev
 ```
+Open `http://localhost:5173` in your browser. Enter the token `hotel2024` to access the live dashboard.
 
-Open `http://localhost:5173` → enter token `hotel2024` → live dashboard.
-
-### Run the REST API
+### Option 3: Run the REST API
+If you want to interact with the FastAPI backend:
 
 ```bash
 cd python
+pip install -r requirements.txt
 uvicorn api.main:app --reload
 ```
-
-API docs at `http://localhost:8000/docs`
+API documentation will be available at `http://localhost:8000/docs`.
 
 ---
 
-## Test Scenarios (TS-01 → TS-08)
+## 🧪 Test Scenarios (Demo)
 
-| ID    | Scenario                                      | Expected behaviour                                  |
+The `run_demo.py` script automatically runs the following scenarios to validate system integrity:
+
+| ID    | Scenario Description                          | Expected Behaviour                                  |
 |-------|-----------------------------------------------|-----------------------------------------------------|
-| TS-01 | Floor-2 DOUBLE check-in                       | Assigns longest-clean Double on floor 2             |
-| TS-02 | Check-out room 102 + bill calculation         | Bill = nights × rate + charges; room → DIRTY        |
-| TS-03 | Housekeeping cleans room 102                  | Room → CLEANING → CLEAN; dashboard updates via WS   |
-| TS-04 | Room 101 orders 2×coffee + 1×sandwich         | Order pipeline; charge added to bill after delivery |
-| TS-05 | CRITICAL maintenance for room 105             | Pushed to front of priority queue; tech assigned    |
-| TS-06 | Two simultaneous SUITE check-ins              | No double-booking; allocation_lock serialises       |
-| TS-07 | All SUITEs occupied — third guest requests    | Clean "No rooms available" error, no crash          |
-| TS-08 | Invalid room type "PENTHOUSE"                 | Validation error; system stays healthy              |
+| **TS-01** | Floor-2 DOUBLE check-in                       | Assigns the longest-clean Double room on floor 2.   |
+| **TS-02** | Check-out room 102 + bill calculation         | Calculates bill (nights × rate + charges); room → DIRTY. |
+| **TS-03** | Housekeeping cleans room 102                  | Room → CLEANING → CLEAN; dashboard updates via WS.  |
+| **TS-04** | Room 101 orders 2× coffee + 1× sandwich       | Order pipeline updates; charge is added to room bill upon delivery. |
+| **TS-05** | CRITICAL maintenance for room 105             | Pushed to the front of the priority queue; technician assigned immediately. |
+| **TS-06** | Two simultaneous SUITE check-ins              | No double-booking occurs; `allocation_lock` correctly serialises the requests. |
+| **TS-07** | All SUITEs occupied — third guest requests    | Graceful rejection with "No rooms available" error; no system crash. |
+| **TS-08** | Invalid room type "PENTHOUSE" requested       | System catches validation error; application remains healthy. |
 
 ---
 
-## Broker Channels
+## 📡 Broker Channels
+
+The Redis Pub/Sub channels used for cross-service communication:
 
 | Channel                  | Publisher          | Subscriber(s)                     |
 |--------------------------|--------------------|-----------------------------------|
@@ -122,26 +146,10 @@ API docs at `http://localhost:8000/docs`
 | `maintenance.request`    | MaintenanceService | DashboardServer                   |
 | `maintenance.assigned`   | MaintenanceService | DashboardServer                   |
 | `maintenance.resolved`   | MaintenanceService | DashboardServer                   |
-| `dashboard.full_state`   | DashboardServer    | WebSocket clients (on connect)    |
+| `dashboard.full_state`   | DashboardServer    | WebSocket clients (on connection) |
 
 ---
 
-## Git Log
+## 📄 License
 
-```
-e2c0c25 Project update
-ed74575 first commit
-9d79f62 docs: embed git log --oneline in README
-10bf05d docs: project + backend READMEs, env config, assignment brief
-6c32a3b feat(frontend): live data hook (WS adapter + mock fallback)
-288f12e feat(frontend): panel UI components with 3D tilt room cards
-64b6780 test(backend): TS-01..TS-08 scenario demo + dashboard smoke
-52c2c67 feat(backend): WebSocket dashboard fan-out + run_dashboard
-f60249c feat(backend): maintenance service (priority queue)
-e9e7ae0 feat(backend): room service (async order pipeline)
-69a4e33 feat(backend): housekeeping service (cleaning queue)
-ac8332b feat(backend): reception service (check-in, check-out, billing)
-c3f16c4 feat(backend): add domain models (Hotel, Room, Guest, enums)
-9cdce23 feat(backend): add Redis Pub/Sub message broker
-364a064 chore: scaffold Vite + React + Tailwind project
-```
+This project is open-source. Feel free to use it for educational purposes or as a starting point for building real-time dashboard applications.
