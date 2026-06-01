@@ -24,7 +24,7 @@ from api.routers import room_service as room_service_router
 from broker import MessageBroker
 from dashboard.server import DashboardServer
 from db.database import Base, SessionLocal, engine, get_db
-from db.models_db import GuestRecord, RoomState, User
+from db.models_db import GuestRecord, RoomState, User, OrderRecord
 from housekeeping import HousekeepingService
 from maintenance import MaintenanceService
 from models import Hotel
@@ -99,38 +99,70 @@ async def lifespan(app: FastAPI):
     try:
         broker = MessageBroker()
     except Exception as exc:
-        print(f"[api] Redis unavailable ({exc}). WebSocket dashboard disabled.")
+        print(f"[api] Redis unavailable ({exc}). Running in disconnected mode.")
         broker = None
 
-    if broker:
-        reception = ReceptionService(hotel, broker)
-        housekeeping = HousekeepingService(hotel, broker)
-        room_svc = RoomServiceService(hotel, broker)
-        maintenance = MaintenanceService(hotel, broker)
+    if broker is None:
+        class MockBroker:
+            def __init__(self):
+                self._connected = False
+                self._handlers = {}
+                self._pattern_handlers = {}
+            def publish(self, channel, data):
+                for h in list(self._handlers.get(channel, [])):
+                    h(data)
+                import fnmatch
+                for pattern, handlers in list(self._pattern_handlers.items()):
+                    if fnmatch.fnmatch(channel, pattern):
+                        for h in handlers:
+                            h(channel, data)
+                return 0
+            def subscribe(self, channel, handler):
+                self._handlers.setdefault(channel, []).append(handler)
+            def subscribe_pattern(self, pattern, handler):
+                self._pattern_handlers.setdefault(pattern, []).append(handler)
+            def start(self): pass
+            def stop(self): pass
+        broker = MockBroker()
 
-        broker.subscribe_pattern("*", _make_room_sync_handler(hotel))
+    reception = ReceptionService(hotel, broker)
+    housekeeping = HousekeepingService(hotel, broker)
 
-        db = SessionLocal()
+    def _update_order_db(order_id: str, status: str) -> None:
+        s = SessionLocal()
         try:
-            _seed_rooms(hotel, db)
+            row = s.query(OrderRecord).filter(OrderRecord.order_id == order_id).first()
+            if row:
+                row.status = status
+                s.commit()
+        except Exception as exc:
+            print(f"[api] Failed to update order {order_id} in DB: {exc}")
+            s.rollback()
         finally:
-            db.close()
+            s.close()
 
-        dash = DashboardServer(hotel, broker)
+    room_svc = RoomServiceService(hotel, broker, on_status_update=_update_order_db)
+    maintenance = MaintenanceService(hotel, broker)
 
-        def _run_ws():
-            asyncio.run(dash.serve())
+    broker.subscribe_pattern("*", _make_room_sync_handler(hotel))
 
-        threading.Thread(target=_run_ws, daemon=True).start()
-        time.sleep(0.3)
+    db = SessionLocal()
+    try:
+        _seed_rooms(hotel, db)
+    finally:
+        db.close()
+
+    dash = DashboardServer(hotel, broker, room_svc=room_svc, maintenance_svc=maintenance)
+
+    def _run_ws():
+        asyncio.run(dash.serve())
+
+    threading.Thread(target=_run_ws, daemon=True).start()
+    time.sleep(0.3)
+    if getattr(broker, "_connected", False):
         print("[api] WebSocket dashboard starting on ws://localhost:8765")
     else:
-        reception = housekeeping = room_svc = maintenance = None
-        db = SessionLocal()
-        try:
-            _seed_rooms(hotel, db)
-        finally:
-            db.close()
+        print("[api] WebSocket dashboard starting in disconnected/mock fallback mode on ws://localhost:8765")
 
     state.hotel = hotel
     state.reception = reception

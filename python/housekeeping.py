@@ -68,6 +68,11 @@ class HousekeepingService:
         with self._queue_lock:
             return len(self._queue)
 
+    @property
+    def queue(self) -> List[str]:
+        with self._queue_lock:
+            return list(self._queue)
+
     # ---- EVENT-DRIVEN — event handler -------------------------------------
 
     def _on_room_vacated(self, data: dict) -> None:
@@ -156,3 +161,21 @@ class HousekeepingService:
 
         # Drain any rooms that queued up while this worker was busy.
         self.start_cleaning()
+
+    def clean_room(self, room_number: str) -> bool:
+        """Manually mark a room as clean immediately."""
+        room = self._hotel.rooms.get(room_number)
+        if room is None:
+            return False
+
+        # If the room is in the cleaning queue, remove it
+        with self._queue_lock:
+            if room_number in self._queue:
+                self._queue.remove(room_number)
+
+        room.mark_clean()
+        self._broker.publish(
+            "room.cleaned",
+            {"room_number": room.number, "housekeeper": "Manual"},
+        )
+        return True

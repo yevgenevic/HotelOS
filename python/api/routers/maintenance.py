@@ -65,7 +65,7 @@ def list_issues(
     ]
 
 
-@router.patch("/issues/{request_id}/assign", summary="Assign next pending request to a technician")
+@router.patch("/issues/{request_id}/assign", summary="Assign a specific maintenance request to a technician")
 def assign_issue(
     request_id: str,
     db: Session = Depends(get_db),
@@ -73,9 +73,9 @@ def assign_issue(
 ):
     if state.maintenance is None:
         raise HTTPException(503, "Service unavailable: start with Redis running")
-    result = state.maintenance.assign_next()
+    result = state.maintenance.assign_next(request_id)
     if result is None:
-        raise HTTPException(400, "No pending requests or no available technicians")
+        raise HTTPException(400, "Request not found or no available technicians")
     row = db.query(MaintenanceRecord).filter(
         MaintenanceRecord.request_id == result["request_id"]
     ).first()

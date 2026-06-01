@@ -150,6 +150,52 @@ export function XIcon(props) {
   )
 }
 
+export function LogOutIcon(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M10 17l5-5-5-5" />
+      <path d="M15 12H3" />
+      <path d="M21 19V5a2 2 0 0 0-2-2h-7" />
+      <path d="M12 21h7a2 2 0 0 0 2-2" />
+    </svg>
+  )
+}
+
+export function PlusIcon(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+
+export function HomeIcon(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <path d="M9 22V12h6v10" />
+    </svg>
+  )
+}
+
+export function SpinnerIcon({ className = '', ...props }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      aria-hidden={true}
+      focusable={false}
+      className={`animate-spin ${className}`}
+      {...props}
+    >
+      <circle cx="12" cy="12" r="10" strokeDasharray="50" strokeDashoffset="38" />
+    </svg>
+  )
+}
+
 const ICONS = {
   bed: BedIcon,
   tray: TrayIcon,
@@ -167,6 +213,9 @@ const ICONS = {
   moon: MoonIcon,
   layers: LayersIcon,
   x: XIcon,
+  logout: LogOutIcon,
+  plus: PlusIcon,
+  home: HomeIcon,
 }
 
 /** Resolve an icon by name (used by the activity log + stat bar). */

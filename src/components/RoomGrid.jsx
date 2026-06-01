@@ -36,7 +36,15 @@ function FilterChip({ active, onClick, dot, label, count }) {
  * Staggered entrance, layout animation, and status filtering — all driven by
  * Framer Motion with `mode="popLayout"` so filtered tiles reflow smoothly.
  */
-export default function RoomGrid({ rooms, query = '', selectedFloor = 'ALL', onFloorChange, onRoomSelect }) {
+export default function RoomGrid({
+  rooms,
+  query = '',
+  selectedFloor = 'ALL',
+  onFloorChange,
+  onRoomSelect,
+  highlightStatuses = [],
+  onQuickCheckout,
+}) {
   const [filter, setFilter] = useState('ALL')
 
   const counts = useMemo(() => {
@@ -122,11 +130,17 @@ export default function RoomGrid({ rooms, query = '', selectedFloor = 'ALL', onF
         variants={container}
         initial="hidden"
         animate="show"
-        className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-3 2xl:grid-cols-4"
+        className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-[repeat(auto-fit,minmax(10.5rem,1fr))]"
       >
         <AnimatePresence mode="popLayout">
           {visible.map((room) => (
-            <RoomCard key={room.id} room={room} onClick={() => onRoomSelect?.(room)} />
+            <RoomCard
+              key={room.id}
+              room={room}
+              onClick={onRoomSelect ? () => onRoomSelect(room) : undefined}
+              highlightStatuses={highlightStatuses}
+              onQuickCheckout={onQuickCheckout}
+            />
           ))}
         </AnimatePresence>
       </motion.div>

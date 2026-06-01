@@ -4,9 +4,9 @@ import { ACTIVITY_TYPE, timeAgo } from '../lib/constants'
 import { Icon, ActivityIcon } from '../lib/icons'
 
 const item = {
-  initial: { opacity: 0, y: 24, scale: 0.95 },
+  initial: { opacity: 0, y: -20, scale: 0.95 },
   animate: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 30 } },
-  exit: { opacity: 0, scale: 0.9, transition: { duration: 0.2, ease: 'easeIn' } },
+  exit: { opacity: 0, y: 8, scale: 0.9, transition: { duration: 0.2, ease: 'easeIn' } },
 }
 
 const EventRow = forwardRef(function EventRow({ event }, ref) {
@@ -50,7 +50,7 @@ export default function ActivityLog({ activity }) {
         {activity.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 py-10 text-center">
             <ActivityIcon className="h-8 w-8 text-slate-600" />
-            <p className="text-sm text-slate-400">Hodisalar kuzatilmoqda…</p>
+            <p className="text-sm text-slate-400">Faoliyat yo'q</p>
           </div>
         ) : (
           <motion.ul layout className="flex flex-col gap-3">

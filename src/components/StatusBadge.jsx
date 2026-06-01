@@ -23,7 +23,7 @@ export default function StatusBadge({ status, map, size = 'sm' }) {
   const pad = size === 'xs' ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'
 
   return (
-    <span className="relative inline-flex">
+    <span className="relative inline-flex shrink-0">
       <AnimatePresence mode="wait" initial={false}>
         <motion.span
           key={status}
@@ -31,10 +31,10 @@ export default function StatusBadge({ status, map, size = 'sm' }) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={reduce ? { opacity: 0 } : { opacity: 0, y: 4, scale: 0.92 }}
           transition={SPRING}
-          className={`inline-flex items-center gap-1.5 rounded-full border font-medium ${pad} ${cfg.chip}`}
+          className={`inline-flex max-w-full items-center gap-1.5 rounded-full border font-medium ${pad} ${cfg.chip}`}
         >
-          <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
-          {cfg.label}
+          <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${cfg.dot}`} />
+          <span className="truncate">{cfg.label}</span>
         </motion.span>
       </AnimatePresence>
     </span>

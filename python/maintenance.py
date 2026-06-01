@@ -62,6 +62,23 @@ class MaintenanceService:
         with self._queue_lock:
             return len(self._queue)
 
+    def get_active_requests(self) -> list:
+        """Return a list of serialized active maintenance requests for the dashboard snapshot."""
+        with self._queue_lock:
+            result = []
+            for req in self._requests.values():
+                tech = self._assignments.get(req.request_id)
+                result.append({
+                    "request_id":  req.request_id,
+                    "room_number": req.room_number,
+                    "priority":    req.priority.name,
+                    "description": req.description,
+                    "status":      "ASSIGNED" if tech else "OPEN",
+                    "assigned_to": tech.name if tech else None,
+                    "submitted_at": req.submitted_at,
+                })
+            return result
+
     @staticmethod
     def _coerce_priority(
         value: Union[str, MaintenancePriority],
@@ -139,9 +156,9 @@ class MaintenanceService:
                 return t
         return None
 
-    def assign_next(self) -> Optional[dict]:
+    def assign_next(self, request_id: Optional[str] = None) -> Optional[dict]:
         """
-        Pop the highest-priority request and assign it to a free technician.
+        Pop the highest-priority request or a specific request and assign it to a free technician.
 
         Race-condition protection (relevant to TS-06 / Debug Log XATO-03):
           _assign_lock ensures only one thread can dequeue + assign at a time.
@@ -159,7 +176,22 @@ class MaintenanceService:
                 if not self._queue:
                     technician.release()
                     return None
-                req = heapq.heappop(self._queue)   # O(log n) pop — highest priority first
+                if request_id is not None:
+                    # Find specific request in queue, remove it and re-heapify
+                    target = None
+                    for req in self._queue:
+                        if req.request_id == request_id:
+                            target = req
+                            break
+                    if target is not None:
+                        self._queue.remove(target)
+                        heapq.heapify(self._queue)
+                        req = target
+                    else:
+                        technician.release()
+                        return None
+                else:
+                    req = heapq.heappop(self._queue)   # O(log n) pop — highest priority first
             self._assignments[req.request_id] = technician
 
         # EVENT-DRIVEN: publish assignment so dashboard shows technician name.
@@ -191,7 +223,7 @@ class MaintenanceService:
             return {"ok": False, "error": "Unknown or unassigned request"}
         technician.release()   # Step 1
 
-        req  = self._requests.get(request_id)
+        req  = self._requests.pop(request_id, None)
         if req is not None:
             room = self._hotel.rooms.get(req.room_number)
             if room is not None:

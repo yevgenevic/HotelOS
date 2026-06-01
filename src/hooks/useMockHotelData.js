@@ -184,86 +184,10 @@ function updateRoom(state, room) {
     rooms: state.rooms.map((r) => (r.id === room.id ? { ...r, ...room } : r)),
   }
 }
-
-function scenario(state, id) {
-  switch (id) {
-    case 'TS-01': {
-      const room = chooseRoom(state.rooms, { type: 'Double', floor: 3, proximity: 'elevator' })
-      if (!room) return addActivity(state, 'TS-01: Double xona mavjud emas', 'guest')
-      const updated = { ...room, status: 'OCCUPIED', guest: 'TS-01 Mehmon' }
-      return addActivity(updateRoom(state, updated), `TS-01: ${room.number}-xona mehmon uchun tayinlandi`, 'guest')
-    }
-    case 'TS-02': {
-      const room = state.rooms.find((r) => r.number === '204')
-      if (!room) return addActivity(state, 'TS-02: 204-xona topilmadi', 'room')
-      const charges = state.orders.filter((o) => o.room === '204').reduce((s, o) => s + o.total, 0)
-      const bill = (room.rate ?? 640000) * 2 + charges
-      return addActivity(
-        updateRoom(state, { ...room, status: 'DIRTY', guest: null }),
-        `TS-02: 204 checkout qilindi. Hisob: ${money.format(bill)} som. Xona iflos holatga otkazildi.`,
-        'guest',
-      )
-    }
-    case 'TS-03': {
-      const room = state.rooms.find((r) => r.number === '204')
-      if (!room) return addActivity(state, 'TS-03: 204-xona topilmadi', 'room')
-      return addActivity(
-        updateRoom(state, { ...room, status: 'CLEAN', guest: null, cleanSince: Date.now() }),
-        'TS-03: 204-xona tozalanmoqda -> toza. Qabul paneli yangilandi.',
-        'room',
-      )
-    }
-    case 'TS-04': {
-      const order = makeOrderForRoom('301', [
-        { name: 'Qahva', qty: 2, price: 28000 },
-        { name: 'Sandvich', qty: 1, price: 42000 },
-      ])
-      return addActivity(
-        { ...state, orders: [order, ...state.orders].slice(0, MAX_ORDERS) },
-        'TS-04: 301-xonadan 2 qahva va 1 sandvich buyurtmasi qabul qilindi.',
-        'order',
-      )
-    }
-    case 'TS-05': {
-      const ticket = makeTicket('115', 'Singan dush', 'CRITICAL')
-      const room = state.rooms.find((r) => r.number === '115')
-      const next = room ? updateRoom(state, { ...room, status: 'MAINTENANCE' }) : state
-      return addActivity(
-        { ...next, maintenance: [ticket, ...next.maintenance] },
-        'TS-05: 115-xona kritik texnik navbatning oldiga qoyildi.',
-        'maintenance',
-      )
-    }
-    case 'TS-06': {
-      const available = [...state.rooms]
-        .filter((room) => room.type === 'Double' && room.status === 'CLEAN')
-        .sort((a, b) => a.cleanSince - b.cleanSince)
-      const first = available[0]
-      if (!first) return addActivity(state, 'TS-06: birinchi mehmon uchun xona mavjud emas', 'guest')
-      const second = available[1]
-      if (!second) return addActivity(state, 'TS-06: faqat bitta Double xona mavjud edi', 'guest')
-      const rooms = state.rooms.map((room) => {
-        if (room.id === first.id) return { ...room, status: 'OCCUPIED', guest: 'Concurrent Guest A' }
-        if (room.id === second.id) return { ...room, status: 'OCCUPIED', guest: 'Concurrent Guest B' }
-        return room
-      })
-      return addActivity({ ...state, rooms }, `TS-06: ${first.number} va ${second.number} alohida mehmonlarga berildi.`, 'guest')
-    }
-    case 'TS-07':
-      return addActivity(state, 'TS-07: Sorov qilingan turdagi xonalar mavjud emas. Muqobil tur yoki waitlist taklif qilindi.', 'guest')
-    case 'TS-08':
-      return addActivity(state, 'TS-08: Notogri xona raqami rad etildi. Tizim barqaror ishlayapti.', 'system')
-    default:
-      return state
-  }
-}
-
 function reducer(state, action) {
   switch (action.type) {
     case 'state:snapshot':
       return { ...state, ...action.payload }
-    case 'scenario:run':
-      return scenario(state, action.payload)
     case 'room:update': {
       const r = action.payload
       const exists = state.rooms.some((x) => x.id === r.id)
@@ -279,10 +203,17 @@ function reducer(state, action) {
         'order',
       )
     case 'order:update':
-      return {
-        ...state,
-        orders: state.orders.map((o) => (o.id === action.payload.id ? { ...o, ...action.payload } : o)),
-      }
+      const orderMessage = action.payload.room
+        ? `Xona ${action.payload.room} buyurtmasi: ${ORDER_FLOW_LABEL[action.payload.status] ?? action.payload.status}`
+        : `Buyurtma: ${ORDER_FLOW_LABEL[action.payload.status] ?? action.payload.status}`
+      return addActivity(
+        {
+          ...state,
+          orders: state.orders.map((o) => (o.id === action.payload.id ? { ...o, ...action.payload } : o)),
+        },
+        orderMessage,
+        'order',
+      )
     case 'maintenance:new':
       return addActivity(
         { ...state, maintenance: [action.payload, ...state.maintenance] },
@@ -300,6 +231,44 @@ function reducer(state, action) {
         },
         `Xona ${action.payload.room ?? ''} nosozligi ${assignedTo} ga biriktirildi`,
         'maintenance',
+      )
+    }
+    case 'maintenance:resolve':
+      return addActivity(
+        { ...state, maintenance: state.maintenance.filter((m) => m.id !== action.payload.id) },
+        'Ariza hal qilindi',
+        'maintenance',
+      )
+    case 'guest:checkin': {
+      const { name, type, floor, proximity } = action.payload
+      const room = chooseRoom(state.rooms, { type, floor: floor ? Number(floor) : undefined, proximity })
+      if (!room) return addActivity(state, `${type} xona mavjud emas`, 'guest')
+      return addActivity(
+        updateRoom(state, { ...room, status: 'OCCUPIED', guest: name }),
+        `${name} ${room.number}-xonaga joylashdi`,
+        'guest',
+      )
+    }
+    case 'guest:checkin:direct': {
+      const { name, roomNumber } = action.payload
+      const room = state.rooms.find((r) => r.number === String(roomNumber))
+      if (!room) return addActivity(state, 'Xona topilmadi', 'guest')
+      return addActivity(
+        updateRoom(state, { ...room, status: 'OCCUPIED', guest: name }),
+        `${name} ${room.number}-xonaga joylashdi`,
+        'guest',
+      )
+    }
+    case 'guest:checkout': {
+      const roomNum = String(action.payload.roomNumber)
+      const room = state.rooms.find((r) => r.number === roomNum)
+      if (!room) return addActivity(state, 'Xona topilmadi', 'guest')
+      const charges = state.orders.filter((o) => o.room === roomNum).reduce((s, o) => s + o.total, 0)
+      const bill = (room.rate ?? 640000) + charges
+      return addActivity(
+        updateRoom(state, { ...room, status: 'DIRTY', guest: null }),
+        `${roomNum}-xona bo'shadi · hisob ${money.format(bill)} som`,
+        'guest',
       )
     }
     case 'activity':
@@ -367,6 +336,49 @@ function nextEvents(state) {
   return EVENTS[0].fn(state)
 }
 
+// Variant of evRoomLifecycle that skips rooms manually assigned by the user
+// so a real check-in isn't immediately overwritten by the mock simulator.
+function evRoomLifecycleFiltered(state, manualRooms) {
+  const eligible = state.rooms.filter((r) => !manualRooms.has(r.number))
+  if (!eligible.length) return []
+  const room = { ...pick(eligible) }
+  if (room.status === 'CLEAN') {
+    room.status = 'OCCUPIED'
+    room.guest = pick(NAMES)
+    return [
+      { type: 'room:update', payload: room },
+      { type: 'activity', payload: act('guest', `${room.guest} ${room.number}-xonaga joylashdi`) },
+    ]
+  }
+  if (room.status === 'OCCUPIED') {
+    const guest = room.guest
+    room.status = 'DIRTY'
+    room.guest = null
+    return [
+      { type: 'room:update', payload: room },
+      { type: 'activity', payload: act('guest', `${guest || 'Mehmon'} ${room.number}-xonadan chiqdi`) },
+    ]
+  }
+  room.status = room.status === 'DIRTY' ? 'CLEANING' : 'CLEAN'
+  room.cleanSince = room.status === 'CLEAN' ? Date.now() : room.cleanSince
+  return [
+    { type: 'room:update', payload: room },
+    { type: 'activity', payload: act('room', `${room.number}-xona holati: ${room.status}`) },
+  ]
+}
+
+function nextEventsSafe(state, manualRooms) {
+  const total = EVENTS.reduce((s, e) => s + e.w, 0)
+  let r = Math.random() * total
+  for (const e of EVENTS) {
+    if ((r -= e.w) < 0) {
+      if (e.fn === evRoomLifecycle) return evRoomLifecycleFiltered(state, manualRooms)
+      return e.fn(state)
+    }
+  }
+  return evRoomLifecycleFiltered(state, manualRooms)
+}
+
 // --- Backend (HotelOS Python) adapter ---------------------------------------
 // Backend publishes { channel, data } envelopes on Redis pub/sub channels and
 // the Python WebSocket server fans them out unchanged. We translate them into
@@ -403,7 +415,24 @@ function adaptBackendEnvelope(envelope) {
     case 'dashboard.full_state': {
       const roomsMap = data.rooms || {}
       const rooms = Object.values(roomsMap).map(mapBackendRoom)
-      return [{ type: 'state:snapshot', payload: { rooms, orders: [], maintenance: [] } }]
+      const orders = (data.orders || []).map((o) => ({
+        id: o.order_id,
+        room: String(o.room_number),
+        items: (o.items || []).map((i) => ({ name: i.name, qty: i.quantity })),
+        total: o.total,
+        status: ORDER_STATUS_TO_FRONT[o.status] || 'PENDING',
+        createdAt: Date.now(),
+      }))
+      const maintenance = (data.maintenance || []).map((m) => ({
+        id: m.request_id,
+        room: String(m.room_number),
+        issue: m.description || 'Nosozlik',
+        priority: PRIORITY_TO_FRONT[m.priority] || 'MEDIUM',
+        status: m.status,
+        assignedTo: m.assigned_to,
+        reportedAt: m.submitted_at ? Math.round(m.submitted_at * 1000) : Date.now(),
+      }))
+      return [{ type: 'state:snapshot', payload: { rooms, orders, maintenance } }]
     }
     case 'reception.check_in':
       return [
@@ -419,12 +448,12 @@ function adaptBackendEnvelope(envelope) {
     }
     case 'room.cleaning_started':
       return [
-        roomPatch(data.room_number, { status: 'CLEANING' }),
+        roomPatch(data.room_number, { status: 'CLEANING', housekeeper: data.housekeeper }),
         { type: 'activity', payload: act('room', `${data.housekeeper} ${data.room_number}-xonani tozalamoqda`) },
       ]
     case 'room.cleaned':
       return [
-        roomPatch(data.room_number, { status: 'CLEAN', cleanSince: Date.now() }),
+        roomPatch(data.room_number, { status: 'CLEAN', cleanSince: Date.now(), housekeeper: null }),
         { type: 'activity', payload: act('room', `${data.room_number}-xona tayyor`) },
       ]
     case 'order.placed': {
@@ -439,7 +468,14 @@ function adaptBackendEnvelope(envelope) {
       return [{ type: 'order:new', payload: order }]
     }
     case 'order.status_update':
-      return [{ type: 'order:update', payload: { id: data.order_id, status: ORDER_STATUS_TO_FRONT[data.status] || 'PREPARING' } }]
+      return [{
+        type: 'order:update',
+        payload: {
+          id: data.order_id,
+          room: String(data.room_number),
+          status: ORDER_STATUS_TO_FRONT[data.status] || 'PREPARING',
+        },
+      }]
     case 'room.charge_added':
       return [{ type: 'activity', payload: act('order', `${data.room_number}: +${money.format(data.amount)} som`) }]
     case 'maintenance.request': {
@@ -463,7 +499,10 @@ function adaptBackendEnvelope(envelope) {
         payload: { id: data.request_id, room: String(data.room_number), assignedTo: data.technician },
       }]
     case 'maintenance.resolved':
-      return [{ type: 'activity', payload: act('maintenance', `Ariza ${data.request_id} hal qilindi`) }]
+      return [
+        { type: 'maintenance:resolve', payload: { id: data.request_id } },
+        { type: 'activity', payload: act('maintenance', `Ariza ${data.request_id} hal qilindi`) },
+      ]
     default:
       return []
   }
@@ -475,6 +514,7 @@ export function useMockHotelData() {
   const [status, setStatus] = useState(wsUrl ? 'connecting' : 'mock')
   const socketRef = useRef(null)
   const stateRef = useRef(state)
+  const manualRoomsRef = useRef(new Set())
   stateRef.current = state
 
   useEffect(() => {
@@ -504,16 +544,6 @@ export function useMockHotelData() {
     return () => socket.close()
   }, [])
 
-  useEffect(() => {
-    if (status === 'connected') return undefined
-    let timer
-    const tick = () => {
-      for (const action of nextEvents(stateRef.current)) dispatch(action)
-      timer = setTimeout(tick, rand(2200, 4200))
-    }
-    timer = setTimeout(tick, 1500)
-    return () => clearTimeout(timer)
-  }, [status])
 
   const sendOrDispatch = useCallback((action) => {
     const socket = socketRef.current
@@ -529,9 +559,67 @@ export function useMockHotelData() {
     [sendOrDispatch],
   )
 
-  const runScenario = useCallback((id) => {
-    dispatch({ type: 'scenario:run', payload: id })
-  }, [])
+  const resolveTicket = useCallback((id) => {
+    sendOrDispatch({ type: 'maintenance:resolve', payload: { id } })
+  }, [sendOrDispatch])
 
-  return { ...state, status, mode: WS_URL ? 'websocket' : 'mock', assignTicket, runScenario }
+  const checkinGuest = useCallback((params) => {
+    const room = chooseRoom(stateRef.current.rooms, {
+      type: params.type,
+      floor: params.floor ? Number(params.floor) : undefined,
+      proximity: params.proximity || undefined,
+    })
+    if (!room) {
+      dispatch({ type: 'activity', payload: act('guest', `${params.type || ''} xona topilmadi`) })
+      return
+    }
+    manualRoomsRef.current.add(room.number)
+    sendOrDispatch({ type: 'guest:checkin:direct', payload: { name: params.name, roomNumber: room.number } })
+  }, [sendOrDispatch])
+
+  const checkoutGuest = useCallback((roomNumber) => {
+    manualRoomsRef.current.delete(String(roomNumber))
+    sendOrDispatch({ type: 'guest:checkout', payload: { roomNumber } })
+  }, [sendOrDispatch])
+
+  const cleanRoom = useCallback((roomNumber) => {
+    const room = stateRef.current.rooms.find((r) => r.number === String(roomNumber))
+    if (!room) return
+    sendOrDispatch({
+      type: 'room:update',
+      payload: { id: room.id, number: room.number, status: 'CLEAN', cleanSince: Date.now(), housekeeper: null }
+    })
+    sendOrDispatch({
+      type: 'activity',
+      payload: act('room', `${room.number}-xona tayyor (manual)`)
+    })
+  }, [sendOrDispatch])
+
+  const addOrderMock = useCallback((room, items) => {
+    sendOrDispatch({ type: 'order:new', payload: makeOrderForRoom(room, items) })
+  }, [sendOrDispatch])
+
+  const advanceOrder = useCallback((id, status) => {
+    const order = stateRef.current.orders.find((o) => o.id === id)
+    sendOrDispatch({ type: 'order:update', payload: { id, room: order?.room, status } })
+  }, [sendOrDispatch])
+
+  const addIssueMock = useCallback((room, issue, priority) => {
+    const frontPriority = priority === 'NORMAL' ? 'MEDIUM' : priority
+    sendOrDispatch({ type: 'maintenance:new', payload: makeTicket(room, issue, frontPriority) })
+  }, [sendOrDispatch])
+
+  return {
+    ...state,
+    status,
+    mode: WS_URL ? 'websocket' : 'mock',
+    assignTicket,
+    resolveTicket,
+    checkinGuest,
+    checkoutGuest,
+    cleanRoom,
+    addOrderMock,
+    advanceOrder,
+    addIssueMock,
+  }
 }

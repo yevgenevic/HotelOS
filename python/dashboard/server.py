@@ -4,7 +4,7 @@ import asyncio
 import json
 import os
 import sys
-from typing import Set
+from typing import Set, Optional
 from urllib.parse import parse_qs, urlparse
 
 VALID_TOKEN = os.getenv("HOTELOS_TOKEN", "hotel2024")
@@ -39,11 +39,15 @@ CHANNELS = [
 
 class DashboardServer:
     def __init__(self, hotel: Hotel, broker: MessageBroker,
-                 host: str = "localhost", port: int = 8765):
+                 host: str = "localhost", port: int = 8765,
+                 room_svc: Optional[RoomServiceService] = None,
+                 maintenance_svc: Optional[MaintenanceService] = None):
         self._hotel = hotel
         self._broker = broker
         self._host = host
         self._port = port
+        self._room_svc = room_svc
+        self._maintenance_svc = maintenance_svc
         self._clients: Set = set()
         self._loop: asyncio.AbstractEventLoop | None = None
 
@@ -66,7 +70,11 @@ class DashboardServer:
         try:
             full = {
                 "channel": "dashboard.full_state",
-                "data": {"rooms": self._hotel.snapshot()},
+                "data": {
+                    "rooms": self._hotel.snapshot(),
+                    "orders": self._room_svc.get_active_orders() if self._room_svc else [],
+                    "maintenance": self._maintenance_svc.get_active_requests() if self._maintenance_svc else [],
+                },
             }
             await websocket.send(json.dumps(full, default=str))
             self._clients.add(websocket)
@@ -113,9 +121,9 @@ def main() -> None:
     # Instantiate services so their subscriptions stay active and events fire.
     ReceptionService(hotel, broker)
     HousekeepingService(hotel, broker)
-    RoomServiceService(hotel, broker)
-    MaintenanceService(hotel, broker)
-    server = DashboardServer(hotel, broker)
+    room_svc = RoomServiceService(hotel, broker)
+    maintenance = MaintenanceService(hotel, broker)
+    server = DashboardServer(hotel, broker, room_svc=room_svc, maintenance_svc=maintenance)
     try:
         asyncio.run(server.serve())
     except KeyboardInterrupt:

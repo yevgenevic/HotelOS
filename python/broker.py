@@ -19,6 +19,7 @@ EVENT-DRIVEN architecture:
 
 from __future__ import annotations
 
+import fnmatch
 import json
 import threading
 from typing import Callable, Dict, List
@@ -58,18 +59,32 @@ class MessageBroker:
         self._lock    = threading.RLock()
         self._running = False
 
-        # Verify connection eagerly so startup failures are obvious.
-        self._pub.ping()
+        # Verify connection, but don't crash if unavailable at startup
+        try:
+            self._pub.ping()
+            self._connected = True
+        except Exception as exc:
+            print(f"[broker] Redis ping failed at startup: {exc!r}. Running in disconnected/local fallback mode.")
+            self._connected = False
 
     # ---- Publish ----------------------------------------------------------
 
     def publish(self, channel: str, data: dict) -> int:
         """
         Publish an event on a named channel.
-        All subscribers on that channel receive the serialised data dict.
+        If Redis is connected, fans the message to Redis.
+        If Redis is disconnected, dispatches directly to local subscribers.
         """
-        payload = json.dumps(data, default=str)
-        return self._pub.publish(channel, payload)
+        if not self._connected:
+            self._dispatch_local(channel, data)
+            return 0
+        try:
+            payload = json.dumps(data, default=str)
+            return self._pub.publish(channel, payload)
+        except Exception as exc:
+            print(f"[broker] publish error on {channel}: {exc!r}. Dispatching locally.")
+            self._dispatch_local(channel, data)
+            return 0
 
     # ---- Subscribe --------------------------------------------------------
 
@@ -78,21 +93,41 @@ class MessageBroker:
         with self._lock:
             new = channel not in self._handlers
             self._handlers.setdefault(channel, []).append(handler)
-            if new:
-                self._pubsub.subscribe(**{channel: self._dispatch})
+            if new and self._connected:
+                try:
+                    self._pubsub.subscribe(**{channel: self._dispatch})
+                except Exception as exc:
+                    print(f"[broker] Failed to subscribe to Redis channel {channel}: {exc!r}")
 
     def subscribe_pattern(self, pattern: str, handler: PatternHandlerFn) -> None:
         """
         Register handler for all channels matching a glob pattern.
-        Used by DashboardServer with pattern="*" to fan all events to WebSocket clients.
         """
         with self._lock:
             new = pattern not in self._pattern_handlers
             self._pattern_handlers.setdefault(pattern, []).append(handler)
-            if new:
-                self._pubsub.psubscribe(**{pattern: self._dispatch_pattern})
+            if new and self._connected:
+                try:
+                    self._pubsub.psubscribe(**{pattern: self._dispatch_pattern})
+                except Exception as exc:
+                    print(f"[broker] Failed to subscribe to Redis pattern {pattern}: {exc!r}")
 
     # ---- Dispatch ---------------------------------------------------------
+
+    def _dispatch_local(self, channel: str, data: dict) -> None:
+        """Fallback local dispatcher used in offline mode."""
+        for h in list(self._handlers.get(channel, [])):
+            try:
+                h(data)
+            except Exception as exc:
+                print(f"[broker-local] handler error on {channel}: {exc!r}")
+        for pattern, handlers in list(self._pattern_handlers.items()):
+            if fnmatch.fnmatch(channel, pattern):
+                for h in handlers:
+                    try:
+                        h(channel, data)
+                    except Exception as exc:
+                        print(f"[broker-local] pattern handler error on {channel} for {pattern}: {exc!r}")
 
     def _decode(self, raw) -> dict:
         """Safely decode JSON payload; return empty dict on failure."""
@@ -136,8 +171,19 @@ class MessageBroker:
                 raise RuntimeError(
                     "MessageBroker.start() requires at least one subscription"
                 )
-            self._thread  = self._pubsub.run_in_thread(sleep_time=0.01, daemon=True)
+            self._thread  = self._pubsub.run_in_thread(
+                sleep_time=0.01,
+                daemon=True,
+                exception_handler=self._handle_listener_exception,
+            )
             self._running = True
+
+    def _handle_listener_exception(self, exc, _pubsub, _thread) -> None:
+        """Prevent Redis listener errors from escaping the worker thread."""
+        with self._lock:
+            running = self._running
+        if running:
+            print(f"[broker] listener error: {exc!r}")
 
     def stop(self) -> None:
         """Stop the listener thread and close connections cleanly."""
@@ -150,8 +196,20 @@ class MessageBroker:
                 t.stop()
             except Exception:
                 pass
+            try:
+                t.join(timeout=1.0)
+            except Exception:
+                pass
         try:
             self._pubsub.close()
+        except Exception:
+            pass
+        try:
+            self._pub.close()
+        except Exception:
+            pass
+        try:
+            self._sub_conn.close()
         except Exception:
             pass
 

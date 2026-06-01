@@ -18,7 +18,7 @@ from __future__ import annotations
 import threading
 import time
 import uuid
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Optional, Callable
 
 from broker import MessageBroker
 from models import Hotel, OrderItem, OrderStatus, RoomServiceOrder, RoomServiceStaff
@@ -56,6 +56,7 @@ class RoomServiceService:
         prep_seconds:      float = 1.0,
         deliver_seconds:   float = 2.0,
         finalize_seconds:  float = 1.0,
+        on_status_update: Optional[Callable[[str, str], None]] = None,
     ):
         self._hotel     = hotel
         self._broker    = broker
@@ -65,10 +66,62 @@ class RoomServiceService:
         self._orders:   Dict[str, RoomServiceOrder] = {}
         self._staff     = RoomServiceStaff("RS1", "Dilshod")
         self._lock      = threading.Lock()
+        self._on_status_update = on_status_update
 
     @property
     def menu(self) -> Dict[str, float]:
         return dict(MENU)
+
+    def get_active_orders(self) -> list:
+        """Return a list of serialized active orders for the dashboard snapshot."""
+        with self._lock:
+            return [
+                {
+                    "order_id":    o.order_id,
+                    "room_number": o.room_number,
+                    "items": [
+                        {
+                            "name":       i.name,
+                            "quantity":   i.quantity,
+                            "unit_price": i.unit_price,
+                            "total":      i.total,
+                        }
+                        for i in o.items
+                    ],
+                    "total":  o.total,
+                    "status": o.status.value,
+                }
+                for o in self._orders.values()
+            ]
+
+    def update_order_status(self, order_id: str, status_str: str) -> bool:
+        """Manually update the status of an active order and trigger events."""
+        with self._lock:
+            order = self._orders.get(order_id)
+            if not order:
+                return False
+            try:
+                status_enum = OrderStatus[status_str.upper()]
+            except KeyError:
+                return False
+
+            order.status = status_enum
+            self._publish_status(order)
+
+            if status_enum == OrderStatus.DELIVERED:
+                room = self._hotel.rooms.get(order.room_number)
+                if room is not None:
+                    room.add_charge(order.total)
+                    self._broker.publish(
+                        "room.charge_added",
+                        {
+                            "room_number": order.room_number,
+                            "amount":      order.total,
+                            "reason":      "room_service",
+                            "order_id":    order.order_id,
+                        },
+                    )
+            return True
 
     def place_order(self, room_number: str, items: Iterable) -> dict:
         """
@@ -156,16 +209,22 @@ class RoomServiceService:
         time.sleep(self._prep)
         order.status = OrderStatus.PREPARING
         self._publish_status(order)
+        if self._on_status_update:
+            self._on_status_update(order.order_id, order.status.name)
 
         # Step 2: Delivery phase.
         time.sleep(self._deliver)
         order.status = OrderStatus.DELIVERING
         self._publish_status(order)
+        if self._on_status_update:
+            self._on_status_update(order.order_id, order.status.name)
 
         # Step 3: Completion phase.
         time.sleep(self._finalize)
         order.status = OrderStatus.DELIVERED
         self._publish_status(order)
+        if self._on_status_update:
+            self._on_status_update(order.order_id, order.status.name)
 
         # Step 4: Apply charge to the guest's room bill.
         room = self._hotel.rooms.get(order.room_number)

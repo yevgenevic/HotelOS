@@ -85,6 +85,10 @@ def update_order(
     row = db.query(OrderRecord).filter(OrderRecord.order_id == order_id).first()
     if row is None:
         raise HTTPException(404, "Order not found")
-    row.status = status
+    row.status = status.upper()
     db.commit()
+
+    if state.room_service is not None:
+        state.room_service.update_order_status(order_id, status)
+
     return {"ok": True, "order_id": order_id, "status": status}
